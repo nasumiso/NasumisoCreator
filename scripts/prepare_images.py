@@ -66,7 +66,7 @@ def resize_and_crop(image: Image.Image, target_size: int) -> Image.Image:
         new_width = int(width * (target_size / height))
 
     # 高品質リサンプリングでリサイズ
-    resized = image.resize((new_width, new_height), Image.LANCZOS)
+    resized = image.resize((new_width, new_height), Image.Resampling.LANCZOS)
 
     # 中央クロップで正方形にする
     left = (new_width - target_size) // 2
