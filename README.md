@@ -25,6 +25,33 @@
 - [要件定義書](./.claude/spec/original/要件定義書.md)
 - [開発手順書](./.claude/spec/original/開発手順書.md)
 
+## セットアップ
+
+### 1. Python仮想環境の作成
+
+```bash
+python3 -m venv .venv
+source .venv/bin/activate  # Mac/Linux
+# または
+.venv\Scripts\activate  # Windows
+```
+
+### 2. 依存パッケージのインストール
+
+```bash
+pip install -r requirements.txt
+```
+
+### 3. スクリプトの実行
+
+```bash
+# 画像前処理（リサイズ・リネーム）
+python scripts/prepare_images.py \
+  --input projects/nasumiso_v1/1_raw_images \
+  --output projects/nasumiso_v1/2_processed \
+  --size 512
+```
+
 ## ステータス
 
-現在: 初期セットアップ段階
+現在: 初期開発段階（画像前処理スクリプト実装済み）

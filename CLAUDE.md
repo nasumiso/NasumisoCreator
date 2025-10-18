@@ -4,9 +4,23 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## プロジェクト概要
 
-**NasumisoCreator** は、ドキュメント駆動型の構造化開発ワークフローを採用したプロジェクトです。現在は初期セットアップ段階で、ソースコードはまだ実装されていません。
+**NasumisoCreator** は、イラストレーター「なすみそ」の画風を学習し、LoRAモデルとして再現・応用するアシスタントツールです。
 
-## 開発ワークフロー
+- **開発者**: こすうけ（MacBook Air M1使用）
+- **技術スタック**: Python, Google Colab, kohya_ss, Stable Diffusion, AUTOMATIC1111 WebUI
+- **現在のステータス**: 初期セットアップ段階（ソースコード未実装）
+
+### 7ステップのワークフロー
+
+1. **画像収集**: なすみそから画像を受領 → `projects/nasumiso_v1/1_raw_images/`
+2. **画像処理**: リネーム＋512x512リサイズ → `projects/nasumiso_v1/2_processed/`
+3. **自動タグ付け**: WD14 Taggerで`.txt`生成 → `projects/nasumiso_v1/3_tagged/`
+4. **データセット整形**: 画像+タグをペアで配置 → `projects/nasumiso_v1/4_dataset/`
+5. **学習実行**: Google ColabでLoRA学習 → `projects/nasumiso_v1/lora_models/`
+6. **画像生成**: Windows環境のWebUIでテスト生成 → `outputs/test_generations/`
+7. **品質チェックと再学習**: フィードバックに基づき改善
+
+## 開発ワークフロー（6ステップの実装サイクル）
 
 このプロジェクトは`.claude/`ディレクトリで管理される6ステップのワークフローに従います：
 
@@ -20,100 +34,145 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ### 作業開始前に必ず実行すること
 
 1. `.claude/claude.md`を読んで詳細なワークフロー指示を理解する
-2. `spec/`ディレクトリでプロジェクト仕様を確認する
-3. `requirements.md`で現在の作業指示を確認する
-4. `work-plan.md`で進行中のタスクがあるか確認する
+2. `.claude/spec/overview.md`でプロジェクト全体像を確認する
+3. `.claude/requirements.md`で現在の作業指示を確認する
+4. `.claude/work-plan.md`で進行中のタスクがあるか確認する
 5. 新規作業の場合：実装前に必ず`work-plan.md`に計画を記述する
 6. 実装完了後：`spec/implementation.md`に実装内容を記録する
 7. 要件完了時：開発者の指示で`completed/REQ-XXX/`に移動する
 
-## ドキュメント構造
+## プロジェクト構造
 
 ```
-.claude/
-├── claude.md              # プロジェクト概要・ワークフロールール（詳細ガイド）
-├── requirements.md        # 現在の作業指示（進行中・未着手のみ）
-├── spec/                  # 仕様書ディレクトリ
-│   ├── overview.md       # プロジェクト概要（任意）
-│   ├── implementation.md # 実装済み機能（Claude Codeが記録）
-│   └── README.md         # spec/ディレクトリのガイド
-├── work-plan.md           # 現在の作業計画・チェックリスト
-├── notes.md               # 月次作業ログ
-└── completed/             # 完了した要件ごとのフォルダ
-    └── REQ-XXX/
-        ├── requirement.md  # 要件詳細
-        ├── work-plan.md    # 作業計画・チェックリスト
-        └── notes.md        # 作業固有のメモ
+NasumisoCreator/
+├── .claude/                        # 開発管理ドキュメント
+│   ├── claude.md                   # ワークフロールール詳細
+│   ├── requirements.md             # 現在の作業指示
+│   ├── work-plan.md                # 作業計画・チェックリスト
+│   ├── notes.md                    # 月次作業ログ
+│   ├── spec/                       # 仕様書
+│   │   ├── overview.md            # プロジェクト概要
+│   │   └── implementation.md      # 実装済み機能
+│   └── completed/                  # 完了した要件
+│
+├── projects/                       # プロジェクトごとのデータ管理
+│   └── nasumiso_v1/
+│       ├── 1_raw_images/          # 元画像
+│       ├── 2_processed/           # リサイズ・リネーム済み
+│       ├── 3_tagged/              # タグ付き画像（.txtペア）
+│       ├── 4_dataset/             # Colab学習用データセット
+│       └── lora_models/           # 学習済みLoRAモデル
+│
+├── scripts/                        # Python前処理スクリプト
+│   ├── prepare_images.py          # リネーム・リサイズ（未実装）
+│   ├── auto_caption.py            # 自動タグ付け（未実装）
+│   └── organize_dataset.py        # データセット整形（未実装）
+│
+├── notebooks/                      # Colab学習ノートブック
+│   └── train_lora_sd15.ipynb      # SD 1.5用LoRA学習（未実装）
+│
+└── outputs/                        # 生成結果（Windows環境）
+    ├── test_generations/           # テスト生成画像
+    ├── prompts/                    # プロンプトテンプレート
+    └── generation_logs/            # 生成パラメータログ
 ```
 
-### 主要ドキュメント
+## セットアップ
 
-**requirements.md**
-- 形式：`[REQ-XXX]` 形式、ステータス 🔄（作業中）/ 📋（未着手）
-- 現在進行中と未着手のみを保持
-- 完了したら`completed/REQ-XXX/`へ移動
+### 仮想環境のセットアップ
 
-**spec/implementation.md**
-- Claude Codeが実装完了後にここに記録
-- 開発者も必要に応じて更新
-- 常に最新状態を保持
+```bash
+# 仮想環境の作成
+python3 -m venv .venv
 
-**work-plan.md**
-- Step 2でClaude Codeが作成
-- チェックリスト形式：`- [ ]` で準備/実装/テストのタスクを記述
-- テスト実行結果も記録
-- 現在の作業のみ保持、完了したら`completed/REQ-XXX/`へ移動
+# 仮想環境の有効化
+source .venv/bin/activate  # Mac/Linux
+# または
+.venv\Scripts\activate  # Windows
 
-**notes.md**
-- 作業履歴と技術的知見を蓄積
-- 月次セクション管理：`## YYYY-MM (当月)` → `## YYYY-MM`（アーカイブ）
-- テスト時の問題点も記録
-- `## Tips`セクションは常時参照用
-- 完了した要件の詳細ログは`completed/REQ-XXX/notes.md`に保存
-
-## 完了処理
-
-要件が完了したら（Step 6完了後）、開発者が指示：
-```
-「REQ-XXXを完了フォルダに移動してください」
+# 依存関係のインストール
+pip install -r requirements.txt
 ```
 
-Claude Codeが実行する処理：
-1. `completed/REQ-XXX/`フォルダを作成
-2. `requirements.md`から該当要件を抽出 → `completed/REQ-XXX/requirement.md`として保存
-3. `work-plan.md`の内容を`completed/REQ-XXX/work-plan.md`として保存
-4. `notes.md`から関連する重要な情報を`completed/REQ-XXX/notes.md`として抽出
-5. `requirements.md`と`work-plan.md`から該当部分を削除
+### 仮想環境の無効化
+
+```bash
+deactivate
+```
+
+## コマンド
+
+### 画像前処理
+
+```bash
+# 仮想環境を有効化してから実行
+source .venv/bin/activate
+
+# 画像のリネーム・リサイズ
+python scripts/prepare_images.py \
+  --input projects/nasumiso_v1/1_raw_images \
+  --output projects/nasumiso_v1/2_processed \
+  --size 512
+
+# 自動タグ付け（未実装）
+python scripts/auto_caption.py --project nasumiso_v1
+
+# データセット整形（未実装）
+python scripts/organize_dataset.py --project nasumiso_v1
+```
+
+## 技術的なアーキテクチャ
+
+### データフロー
+
+1. **前処理（Mac環境）**: `scripts/`のPythonスクリプトで画像処理・タグ付け
+2. **学習（Google Colab）**: `notebooks/train_lora_sd15.ipynb`でLoRA学習
+3. **生成（Windows環境）**: AUTOMATIC1111 WebUIで画像生成
+
+### 重要な制約
+
+- **Mac環境での学習制限**: CUDA非対応のため、学習はGoogle Colab必須
+- **生成環境**: Windows 10/11 + AUTOMATIC1111 WebUI想定
+- **画像枚数**: 10〜100枚推奨（過学習・学習不足を避けるため）
+- **学習時間**: 50枚・2000ステップで約20〜30分（Colab Pro基準）
 
 ## 重要な注意事項
 
 ### ワークフロールール
-- **必ず作業計画を作成**：実装前に`work-plan.md`に計画を記述（Step 2）
+- **必ず作業計画を作成**：実装前に`.claude/work-plan.md`に計画を記述（Step 2）
 - **計画のスキップ禁止**：開発者が計画を確認してから実装を開始
-- **実装内容を必ず記録**：実装完了後は`spec/implementation.md`を更新
+- **実装内容を必ず記録**：実装完了後は`.claude/spec/implementation.md`を更新
 - **移動は開発者指示後**：開発者の指示なしに`completed/`への移動は行わない
 - **コミットは明示的指示時のみ**：開発者が明示的に要求した時のみコミットする
 
-### ドキュメント言語
-- すべてのドキュメントは**日本語**で記述
-- コードコメントの規則は最初の実装時に確立
+### コーディング規則
+- **ドキュメント**: すべて日本語で記述
+- **Pythonコード**:
+  - コメントは日本語（詳細な説明）と英語（簡潔な説明）を併用
+  - 関数・クラス名は英語（snake_case / PascalCase）
+  - インデント: 4スペース
+  - 型ヒント推奨（Python 3.11対応）
+- **新規プロジェクト作成**:
+  ```bash
+  mkdir -p projects/新プロジェクト名/{1_raw_images,2_processed,3_tagged,4_dataset,lora_models}
+  ```
 
-### 現在のプロジェクト状態
-- **ステータス**：初期セットアップ段階
-- **ソースコード**：未作成
-- **技術スタック**：最初の要件に基づいて決定予定
-- **テスト方法**：最初の実装時に確立予定
+### 環境固有の注意
+- **Mac環境（開発）**: スクリプト実装のみ、学習は不可（CUDA非対応）
+- **Google Colab（学習）**: kohya_ss使用、GPU必須
+- **Windows環境（生成）**: AUTOMATIC1111 WebUI使用
 
-## このプロジェクトでの作業方法
+## 完了処理
 
-プロジェクトにまだコードが存在しないため、以下に注力してください：
+要件完了時は開発者の指示で`completed/REQ-XXX/`フォルダに移動：
 
-1. `requirements.md`の要件を理解する
-2. `work-plan.md`に詳細な作業計画を作成する
-3. 技術選択について開発者に確認する
-4. すべての実装詳細を`spec/implementation.md`に記録する
-5. 6ステップのワークフローを厳密に守る
+```
+「REQ-XXXを完了フォルダに移動してください」
+```
 
-## 参照
+## 参照ドキュメント
 
-詳細なワークフロー指示とルールについては、常に`.claude/claude.md`を参照してください。
+- `.claude/claude.md` - ワークフロー詳細ルール
+- `.claude/spec/overview.md` - プロジェクト全体仕様
+- `.claude/spec/original/要件定義書.md` - MVP要件定義
+- `.claude/spec/original/開発手順書.md` - Mac環境向け学習手順

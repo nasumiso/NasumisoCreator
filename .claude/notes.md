@@ -4,17 +4,11 @@
 
 ---
 
-## YYYY-MM (当月)
+## 2025-10 (当月)
 
-### YYYY-MM-DD: [作業タイトル]
-
-**作業内容**: [何を実施したか]
-
-**技術的なポイント**:
-- [学んだこと、解決した問題など]
-
-**問題点**:
-- [発見された問題、今後の課題など]
+### 2025-10-18: REQ-001 画像管理 完了
+- `scripts/prepare_images.py`を実装し、画像前処理機能を完了
+- 詳細は`completed/REQ-001/notes.md`を参照
 
 ---
 
@@ -26,14 +20,52 @@
 
 ## Tips (常時参照)
 
-### [カテゴリ1]
-- [プロジェクト全体で有用な技術メモ]
-- [よく使うコマンド]
-- [ベストプラクティス]
+### Python環境
+- **仮想環境**: `.venv`ディレクトリで管理
+- **有効化**: `source .venv/bin/activate` (Mac/Linux)
+- **無効化**: `deactivate`
+- **依存関係インストール**: `pip install -r requirements.txt` (venv有効化後)
+- **Python バージョン**: Python 3.9.6
 
-### [カテゴリ2]
-- [デバッグ方法]
-- [トラブルシューティング]
+### 画像処理
+- **Pillow推奨設定**:
+  - リサンプリング: `Image.LANCZOS`（高品質）
+  - 保存形式: PNG（ロスレス）
+  - 最適化オプション: `optimize=True`で圧縮率向上
+- **アスペクト比調整**:
+  - 中央クロップ: キャラクター中心を保持
+  - パディング: 背景が重要な場合（今回は未使用）
+
+### コマンド一覧
+```bash
+# 仮想環境の有効化
+source .venv/bin/activate
+
+# 画像前処理（リサイズ・リネーム）
+python scripts/prepare_images.py \
+  --input projects/nasumiso_v1/1_raw_images \
+  --output projects/nasumiso_v1/2_processed \
+  --size 512
+
+# 依存関係インストール（venv有効化後）
+pip install -r requirements.txt
+
+# 画像サイズ確認
+file projects/nasumiso_v1/2_processed/img001.png
+
+# 仮想環境の無効化
+deactivate
+```
+
+### Git操作
+- **ブランチ作成**: `git checkout -b feature/xxx`
+- **ステータス確認**: `git status`
+- **コミット**: 開発者の明示的指示後のみ
+
+### デバッグ方法
+- **画像処理エラー**: PIL.Image.open()でファイル破損をチェック
+- **パス問題**: Pathlibを使用して絶対パス・相対パスを統一
+- **エンコーディング**: Python3ファイルは`# -*- coding: utf-8 -*-`を追加
 
 ---
 
