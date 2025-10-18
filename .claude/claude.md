@@ -78,7 +78,7 @@
 - **構造**:
   - `requirement.md`: その要件の詳細（requirements.mdから抽出）
   - `work-plan.md`: 作業計画と実行結果
-  - `notes.md`: その作業固有の重要なメモ
+  - `notes.md`: その作業固有の重要なメモと気付き・感想
 - **作成タイミング**: Step 6完了後、開発者の指示で移動
 
 ## 完了時の移動ルール
@@ -94,7 +94,7 @@
 - `completed/REQ-XXX/` フォルダを作成
 - requirements.mdから該当要件を抽出して `completed/REQ-XXX/requirement.md` として保存
 - work-plan.mdの内容を `completed/REQ-XXX/work-plan.md` として保存
-- notes.mdから関連する重要な情報を `completed/REQ-XXX/notes.md` として抽出
+- notes.mdから関連する重要な情報を `completed/REQ-XXX/notes.md` として抽出　その際、今回の作業の気付き・感想も記述する
 - requirements.mdとwork-plan.mdから該当部分を削除
 
 ### 3. 結果
