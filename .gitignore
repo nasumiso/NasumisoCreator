@@ -1,0 +1,25 @@
+# 画像ファイル（プライバシー保護）
+projects/*/1_raw_images/**
+projects/*/2_processed/**
+projects/*/3_tagged/**
+projects/*/4_dataset/**
+projects/*/lora_models/*.safetensors
+
+# 生成結果
+outputs/test_generations/**
+outputs/generation_logs/**
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+*.egg-info/
+
+# システムファイル
+.DS_Store
+Thumbs.db
+
+# 一時ファイル
+*.tmp
+*.log

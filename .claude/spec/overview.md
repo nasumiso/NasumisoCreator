@@ -85,34 +85,52 @@
 ### プロジェクトディレクトリ構造
 
 ```
-nasumiso_creator/
-├── projects/                    # プロジェクトごとのデータ
-│   ├── nasumiso_v1/
-│   │   ├── raw_images/         # オリジナル画像（受領データ）
-│   │   ├── resized/            # リサイズ済み画像（512x512）
-│   │   ├── tags/               # タグファイル
-│   │   └── lora_model/         # 学習済みLoRAモデル
-│   └── another_character/      # 別プロジェクト例
-├── datasets/                    # 学習用データセット（整形済み）
-│   └── nasumiso_v1/            # 画像+タグがペアで配置
-├── scripts/                     # 前処理スクリプト
-│   ├── prepare_images.py       # リネーム・リサイズ
-│   ├── auto_caption.py         # 自動タグ付け
-│   └── organize_dataset.py     # データセット整形
-├── notebooks/                   # 学習用ノートブック
-│   └── train_lora_template.ipynb
-└── outputs/                     # 生成結果
-    └── test_generations/
+NasumisoCreator/
+├── .claude/                        # Claude Code管理ファイル
+│   ├── claude.md
+│   ├── requirements.md
+│   ├── work-plan.md
+│   ├── notes.md
+│   ├── spec/                       # 仕様書
+│   └── completed/                  # 完了した要件
+│
+├── projects/                       # プロジェクトごとのデータ管理
+│   └── nasumiso_v1/
+│       ├── 1_raw_images/          # ステップ1: なすみそから受領した元画像
+│       ├── 2_processed/           # ステップ2: リサイズ・リネーム済み画像
+│       ├── 3_tagged/              # ステップ3: タグ付き画像（.txtペア）
+│       ├── 4_dataset/             # ステップ4: Colab学習用データセット
+│       └── lora_models/           # ステップ5: 学習済みLoRAモデル
+│
+├── scripts/                        # Python前処理スクリプト
+│   ├── prepare_images.py          # リネーム・リサイズ
+│   ├── auto_caption.py            # 自動タグ付け
+│   ├── organize_dataset.py        # データセット整形
+│   └── utils/                     # 共通ユーティリティ
+│
+├── notebooks/                      # Colab学習ノートブック
+│   └── train_lora_sd15.ipynb
+│
+├── outputs/                        # 生成結果（Windows環境）
+│   ├── test_generations/          # テスト生成画像
+│   ├── prompts/                   # プロンプトテンプレート
+│   └── generation_logs/           # 生成パラメータログ
+│
+├── docs/                           # ユーザー向けドキュメント
+├── config/                         # 設定ファイル
+├── .gitignore                      # Git除外設定
+├── README.md                       # プロジェクト概要
+└── requirements.txt                # Python依存パッケージ
 ```
 
 ### ワークフロー（7ステップ）
 
-1. **画像収集**: なすみそ氏から画像を受領 → `projects/nasumiso_v1/raw_images/`
-2. **画像処理**: リネーム＋512x512リサイズ → `projects/nasumiso_v1/resized/`
-3. **自動タグ付け**: WD14 Taggerで`.txt`生成 → `projects/nasumiso_v1/tags/`
-4. **データセット整形**: 画像+タグをペアで配置 → `datasets/nasumiso_v1/`
-5. **学習実行**: Google ColabでLoRA学習 → `.safetensors`出力
-6. **画像生成**: Windows環境のWebUIでテスト生成
+1. **画像収集**: なすみそから画像を受領 → `projects/nasumiso_v1/1_raw_images/`
+2. **画像処理**: リネーム＋512x512リサイズ → `projects/nasumiso_v1/2_processed/`
+3. **自動タグ付け**: WD14 Taggerで`.txt`生成 → `projects/nasumiso_v1/3_tagged/`
+4. **データセット整形**: 画像+タグをペアで配置 → `projects/nasumiso_v1/4_dataset/`
+5. **学習実行**: Google ColabでLoRA学習 → `projects/nasumiso_v1/lora_models/`
+6. **画像生成**: Windows環境のWebUIでテスト生成 → `outputs/test_generations/`
 7. **品質チェックと再学習**: フィードバックに基づき改善
 
 ---
@@ -154,7 +172,6 @@ nasumiso_creator/
 
 ### ビジネス的制約
 - **個人開発**: リソースは開発者1名（こすうけ）
-- **プライバシー**: 画像はローカル／非公開環境で取り扱う（なすみその著作物）
 - **非エンジニアユーザー対応**: なすみそが簡単に使えるよう、複雑な手作業を排除する必要あり
 - **コスト**: Colab無料版の制限内で運用（必要に応じてColab Pro検討）
 

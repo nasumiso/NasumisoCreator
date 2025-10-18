@@ -1,0 +1,7 @@
+# Python dependencies for NasumisoCreator
+# 実装時に追加予定
+
+# 画像処理
+Pillow>=10.0.0
+
+# その他は実装時に追記
