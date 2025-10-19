@@ -40,13 +40,56 @@ Claude Codeが実装を行った後、このファイルに実装内容を追記
 
 ---
 
+### 2025-10-19: 自動タグ付けスクリプト（auto_caption.py）
+
+**実装内容**:
+- WD14 Tagger v2を使用した自動タグ付け機能
+- ONNX Runtimeによる高速推論
+- 信頼度しきい値によるタグフィルタリング（デフォルト: 0.35）
+- Danbooru形式のタグ出力（カンマ区切り）
+- 画像とタグファイル（.txt）のペア出力
+- 処理進捗の詳細表示
+
+**関連ファイル**:
+- `scripts/auto_caption.py` - メインスクリプト
+- `projects/nasumiso_v1/2_processed/` - 入力（処理済み画像15枚）
+- `projects/nasumiso_v1/3_tagged/` - 出力（画像15枚 + タグファイル15個）
+- `requirements.txt` - 依存ライブラリ（onnxruntime, numpy, pandas, huggingface-hub）
+- `scripts/README.md` - 使用方法のドキュメント
+
+**技術的なポイント**:
+- **WD14 Tagger v2** (SmilingWolf/wd-v1-4-moat-tagger-v2) を使用
+- **ONNX Runtime** で推論を実行（PyTorchよりも軽量・高速）
+- **Hugging Face Hub** からモデルとタグリストを自動ダウンロード
+- **画像前処理**: 448x448にリサイズ、アスペクト比維持+白パディング
+- **確率計算**: モデル出力を直接使用（sigmoid不要）
+- **型ヒント完備**: 可読性と保守性の向上
+- **エラーハンドリング**: 処理失敗時もスキップして継続
+
+**テスト結果**:
+- 15枚の画像を正常に処理（100%成功率）
+- 各画像に8-9個の適切なタグを生成
+- タグの内容: black_background, monochrome, no_humans, greyscale, general, comic など
+- 処理時間: 初回約15秒（モデルダウンロード含む）、2回目以降約5秒
+- 出力ファイルサイズ: 各.txtファイル約100バイト
+
+**技術的な課題と解決**:
+1. **transformersライブラリ問題**: WD14 Taggerはtransformersに対応していない
+   - 解決: ONNX Runtime を使用する方式に変更
+2. **シグモイド関数の誤適用**: モデル出力が既に確率値だったため、sigmoid適用で全タグが0.5付近に集中
+   - 解決: モデル出力を直接使用するように修正
+3. **依存ライブラリの整理**: transformers/timm/torchは不要だった
+   - 解決: requirements.txtをonnxruntime中心に書き換え
+
+---
+
 ## 実装済み機能一覧
 
 ### データ前処理
 - [x] 画像リネーム機能（連番形式）
 - [x] 画像リサイズ機能（512x512）
 - [x] アスペクト比維持 + 中央クロップ
-- [ ] 自動タグ付け（WD14 Tagger）
+- [x] 自動タグ付け（WD14 Tagger）
 - [ ] データセット整形（kohya_ss形式）
 
 ### LoRA学習
@@ -65,13 +108,13 @@ Claude Codeが実装を行った後、このファイルに実装内容を追記
 
 ## 未実装機能
 
-### 次回実装予定（REQ-002）
-- [ ] 自動タグ付けスクリプト（auto_caption.py）
-- [ ] WD14 Tagger統合
-
-### 次々回実装予定（REQ-003）
+### 次回実装予定（REQ-003）
 - [ ] データセット整形スクリプト（organize_dataset.py）
 - [ ] kohya_ss標準フォーマット対応
+
+### 次々回実装予定（REQ-004）
+- [ ] Google Colab学習ノートブック
+- [ ] 学習パラメータ設定テンプレート
 
 ### 将来的に実装予定
 - [ ] GUIツール化

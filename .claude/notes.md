@@ -10,6 +10,13 @@
 - `scripts/prepare_images.py`を実装し、画像前処理機能を完了
 - 詳細は`completed/REQ-001/notes.md`を参照
 
+### 2025-10-19: REQ-002 自動タグ付け 完了
+- `scripts/auto_caption.py`を実装し、WD14 Taggerによる自動タグ付けを完了
+- ONNX Runtime方式で実装（transformers非対応のため）
+- sigmoid関数の誤適用問題を発見・修正（モデル出力が既に確率値だった）
+- 15枚の画像に対して各8-9個の適切なタグを生成
+- 技術的な詳細は`.claude/spec/implementation.md`を参照
+
 ---
 
 ## 完了した要件の作業ログについて
@@ -46,6 +53,12 @@ python scripts/prepare_images.py \
   --input projects/nasumiso_v1/1_raw_images \
   --output projects/nasumiso_v1/2_processed \
   --size 512
+
+# 自動タグ付け（WD14 Tagger）
+python scripts/auto_caption.py \
+  --input projects/nasumiso_v1/2_processed \
+  --output projects/nasumiso_v1/3_tagged \
+  --threshold 0.35
 
 # 依存関係インストール（venv有効化後）
 pip install -r requirements.txt
