@@ -102,6 +102,40 @@
 - work-plan.mdは空（または次の作業待ち）
 - 完了した要件の情報はcompleted/REQ-XXX/に集約
 
+## 簡略指示の定義
+
+開発者は以下の簡略表現で指示することがあります。Claude Codeはこれを理解し、適切に実行してください。
+
+### 作業計画
+- 「plan REQ-XXX」
+- 「計画 REQ-XXX」
+→ requirements.mdのREQ-XXXについて、work-plan.mdに作業計画をチェックリスト形式で記述
+
+### 実装開始
+- 「implement REQ-XXX」
+- 「実装 REQ-XXX」
+→ work-plan.mdの計画に基づいて実装を開始
+
+### テスト実行
+- 「test REQ-XXX」
+- 「テスト REQ-XXX」
+→ テストを実行し、work-plan.mdのチェックリストを完了。問題があればnotes.mdに記録
+
+### 完了処理
+- 「complete REQ-XXX」
+- 「完了 REQ-XXX」
+- 「archive REQ-XXX」
+→ completed/REQ-XXX/フォルダを作成し、関連ファイルを移動
+
+### 月次アーカイブ
+- 「archive notes」
+- 「月次アーカイブ」
+→ notes.mdを月次アーカイブとして保存
+
+### 複合指示
+- 「implement and test REQ-XXX」
+→ 実装とテストを連続実行
+
 ## 技術スタック
 
 [プロジェクトで使用している技術を列挙]
