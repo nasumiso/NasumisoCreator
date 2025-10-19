@@ -1,7 +1,11 @@
 # 画像ファイル（プライバシー保護）
 projects/*/1_raw_images/**
 projects/*/2_processed/**
-projects/*/3_tagged/**
+projects/*/3_tagged/*.png
+projects/*/3_tagged/*.jpg
+projects/*/3_tagged/*.jpeg
+# タグファイルはGit管理対象（手動修正を追跡するため）
+!projects/*/3_tagged/*.txt
 projects/*/4_dataset/**
 projects/*/lora_models/*.safetensors
 

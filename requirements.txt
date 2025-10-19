@@ -1,7 +1,12 @@
 # Python dependencies for NasumisoCreator
-# 実装時に追加予定
 
 # 画像処理
 Pillow>=10.0.0
+
+# WD14 Tagger (自動タグ付け)
+onnxruntime>=1.15.0
+numpy>=1.24.0
+pandas>=2.0.0
+huggingface-hub>=0.16.0
 
 # その他は実装時に追記

@@ -78,7 +78,7 @@
 - **構造**:
   - `requirement.md`: その要件の詳細（requirements.mdから抽出）
   - `work-plan.md`: 作業計画と実行結果
-  - `notes.md`: その作業固有の重要なメモ
+  - `notes.md`: その作業固有の重要なメモと気付き・感想
 - **作成タイミング**: Step 6完了後、開発者の指示で移動
 
 ## 完了時の移動ルール
@@ -94,13 +94,47 @@
 - `completed/REQ-XXX/` フォルダを作成
 - requirements.mdから該当要件を抽出して `completed/REQ-XXX/requirement.md` として保存
 - work-plan.mdの内容を `completed/REQ-XXX/work-plan.md` として保存
-- notes.mdから関連する重要な情報を `completed/REQ-XXX/notes.md` として抽出
+- notes.mdから関連する重要な情報を `completed/REQ-XXX/notes.md` として抽出　その際、今回の作業の気付き・感想も記述する
 - requirements.mdとwork-plan.mdから該当部分を削除
 
 ### 3. 結果
 - requirements.mdは次の作業のみ
 - work-plan.mdは空（または次の作業待ち）
 - 完了した要件の情報はcompleted/REQ-XXX/に集約
+
+## 簡略指示の定義
+
+開発者は以下の簡略表現で指示することがあります。Claude Codeはこれを理解し、適切に実行してください。
+
+### 作業計画
+- 「plan REQ-XXX」
+- 「計画 REQ-XXX」
+→ requirements.mdのREQ-XXXについて、work-plan.mdに作業計画をチェックリスト形式で記述
+
+### 実装開始
+- 「implement REQ-XXX」
+- 「実装 REQ-XXX」
+→ work-plan.mdの計画に基づいて実装を開始
+
+### テスト実行
+- 「test REQ-XXX」
+- 「テスト REQ-XXX」
+→ テストを実行し、work-plan.mdのチェックリストを完了。問題があればnotes.mdに記録
+
+### 完了処理
+- 「complete REQ-XXX」
+- 「完了 REQ-XXX」
+- 「archive REQ-XXX」
+→ completed/REQ-XXX/フォルダを作成し、関連ファイルを移動
+
+### 月次アーカイブ
+- 「archive notes」
+- 「月次アーカイブ」
+→ notes.mdを月次アーカイブとして保存
+
+### 複合指示
+- 「implement and test REQ-XXX」
+→ 実装とテストを連続実行
 
 ## 技術スタック
 
