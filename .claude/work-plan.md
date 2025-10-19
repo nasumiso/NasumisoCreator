@@ -89,6 +89,53 @@ black_background, monochrome, no_humans, greyscale, general, comic, negative_spa
 
 **結論**: すべてのテスト項目が正常に完了しました。
 
+#### 追加対応（画像正規化問題の修正）
+
+**発見された問題**:
+- 自動生成されたタグが画像内容と一致しない
+- 例: カラー画像に対して `black_background`, `monochrome`, `no_humans` などの誤タグ
+
+**原因調査**:
+- 画像の正規化方法が間違っていた（0-1正規化を適用）
+- WD14 Tagger v2は0-255の範囲を期待していた
+
+**修正内容**:
+- `scripts/auto_caption.py`の`_preprocess_image`メソッドから`/ 255.0`を削除
+- 0-255の範囲をそのまま使用するように変更
+
+**修正後のテスト結果**:
+```
+✓ [01/15] img001.png
+  タグ数: 22
+  プレビュー: nasumiso_style, 1boy, solo, male_focus, eating, ...
+✓ [11/15] img011.png
+  タグ数: 13
+  プレビュー: nasumiso_style, 1girl, solo, serafuku, school_uniform, ...
+```
+
+**サンプルタグ（修正後）**:
+- img001.txt: `nasumiso_style, 1boy, solo, male_focus, eating, food, black_hair, chibi, ...`
+- img011.txt: `nasumiso_style, 1girl, solo, serafuku, school_uniform, black_hair, ...`
+
+#### タグ管理ワークフローの追加
+
+**追加スクリプト**:
+1. `scripts/add_common_tag.py` - 共通タグの一括追加
+2. `scripts/generate_jp_tags.py` - 日本語タグファイル生成（レビュー用）
+
+**実施した作業**:
+- [x] 全15枚の画像の先頭に`nasumiso_style`タグを追加
+- [x] 日本語タグファイル（_jp.txt）を生成
+
+**Git管理体制**:
+- `.gitignore`を更新してタグファイル（.txt）のみ管理対象に
+- コミット履歴でタグの変更を追跡可能に
+
+**今後の手動作業**（ユーザー実施）:
+- [ ] 誤タグの削除（blue_skin, colored_skinなど）
+- [ ] 不足タグの追加（simple_lineartなど）
+- [ ] 修正後にGitコミット
+
 #### 技術的な方針
 - **タグ付けモデル**: WD14 Tagger v2（SmilingWolf/wd-v1-4-moat-tagger-v2）
 - **信頼度しきい値**: デフォルト0.35（調整可能）
