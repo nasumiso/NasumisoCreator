@@ -8,7 +8,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 - **開発者**: こすうけ（MacBook Air M1使用）
 - **技術スタック**: Python, Google Colab, kohya_ss, Stable Diffusion, AUTOMATIC1111 WebUI
-- **現在のステータス**: 初期セットアップ段階（ソースコード未実装）
+- **現在のステータス**: 画像前処理・自動タグ付けスクリプト実装済み
 
 ### 7ステップのワークフロー
 
@@ -49,7 +49,8 @@ NasumisoCreator/
 │   ├── claude.md                   # ワークフロールール詳細
 │   ├── requirements.md             # 現在の作業指示
 │   ├── work-plan.md                # 作業計画・チェックリスト
-│   ├── notes.md                    # 月次作業ログ
+│   ├── notes.md                    # 現在のREQ作業中の気づき・メモ
+│   ├── KNOWLEDGE.md                # プロジェクト全体の知見・ノウハウ
 │   ├── spec/                       # 仕様書
 │   │   ├── overview.md            # プロジェクト概要
 │   │   └── implementation.md      # 実装済み機能
@@ -64,8 +65,10 @@ NasumisoCreator/
 │       └── lora_models/           # 学習済みLoRAモデル
 │
 ├── scripts/                        # Python前処理スクリプト
-│   ├── prepare_images.py          # リネーム・リサイズ（未実装）
-│   ├── auto_caption.py            # 自動タグ付け（未実装）
+│   ├── prepare_images.py          # リネーム・リサイズ（実装済み）
+│   ├── auto_caption.py            # 自動タグ付け（実装済み）
+│   ├── add_common_tag.py          # 共通タグ一括追加（実装済み）
+│   ├── generate_jp_tags.py        # 日本語タグ生成（実装済み）
 │   └── organize_dataset.py        # データセット整形（未実装）
 │
 ├── notebooks/                      # Colab学習ノートブック
@@ -102,22 +105,35 @@ deactivate
 
 ## コマンド
 
-### 画像前処理
+### 画像前処理ワークフロー
 
 ```bash
 # 仮想環境を有効化してから実行
 source .venv/bin/activate
 
-# 画像のリネーム・リサイズ
+# 1. 画像のリネーム・リサイズ（512x512）
 python scripts/prepare_images.py \
   --input projects/nasumiso_v1/1_raw_images \
   --output projects/nasumiso_v1/2_processed \
   --size 512
 
-# 自動タグ付け（未実装）
-python scripts/auto_caption.py --project nasumiso_v1
+# 2. 自動タグ付け（WD14 Tagger v2）
+python scripts/auto_caption.py \
+  --input projects/nasumiso_v1/2_processed \
+  --output projects/nasumiso_v1/3_tagged \
+  --threshold 0.35
 
-# データセット整形（未実装）
+# 3. 共通タグの一括追加（画風学習用）
+python scripts/add_common_tag.py \
+  --input projects/nasumiso_v1/3_tagged \
+  --tag "nasumiso_style" \
+  --exclude-jp
+
+# 4. 日本語タグファイル生成（確認用）
+python scripts/generate_jp_tags.py \
+  --input projects/nasumiso_v1/3_tagged
+
+# 5. データセット整形（未実装）
 python scripts/organize_dataset.py --project nasumiso_v1
 ```
 
@@ -151,7 +167,8 @@ python scripts/organize_dataset.py --project nasumiso_v1
   - コメントは日本語（詳細な説明）と英語（簡潔な説明）を併用
   - 関数・クラス名は英語（snake_case / PascalCase）
   - インデント: 4スペース
-  - 型ヒント推奨（Python 3.11対応）
+  - 型ヒント推奨（Python 3.9.6対応）
+  - ファイル先頭に `#!/usr/bin/env python3` と `# -*- coding: utf-8 -*-` を記述
 - **新規プロジェクト作成**:
   ```bash
   mkdir -p projects/新プロジェクト名/{1_raw_images,2_processed,3_tagged,4_dataset,lora_models}
@@ -170,9 +187,29 @@ python scripts/organize_dataset.py --project nasumiso_v1
 「REQ-XXXを完了フォルダに移動してください」
 ```
 
+## 技術的な重要事項
+
+### WD14 Tagger v2の使用上の注意
+- **画像正規化は不要**: モデルは0-255の範囲を期待（0-1正規化すると誤ったタグが生成される）
+- **モデル出力**: 既に確率値のため、sigmoid適用は不要
+- **推奨しきい値**: 0.35（P=Rポイント: 0.3771）
+- **実装方式**: ONNX Runtime（transformersは非対応）
+
+### タグ管理のベストプラクティス
+1. 自動タグ付け実行 → Gitコミット（自動生成版）
+2. 共通タグ追加（nasumiso_styleなど） → Gitコミット
+3. 手動でタグレビュー・修正 → Gitコミット（修正版）
+4. Git差分で変更履歴を追跡可能
+
+### Git管理
+- **画像ファイル**: `.gitignore`で除外（プライバシー保護）
+- **タグファイル (.txt)**: Git管理対象（手動修正履歴を追跡）
+
 ## 参照ドキュメント
 
 - `.claude/claude.md` - ワークフロー詳細ルール
+- `.claude/spec/implementation.md` - 実装済み機能の詳細
+- `.claude/KNOWLEDGE.md` - プロジェクト全体の知見・ノウハウ
 - `.claude/spec/overview.md` - プロジェクト全体仕様
 - `.claude/spec/original/要件定義書.md` - MVP要件定義
 - `.claude/spec/original/開発手順書.md` - Mac環境向け学習手順

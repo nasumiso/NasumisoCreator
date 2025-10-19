@@ -29,12 +29,13 @@
 │   ├── implementation.md # 実装済み機能（Claude Codeが記録）
 │   └── ...               # その他プロジェクト固有の仕様書
 ├── work-plan.md           # 現在の作業計画・チェックリスト
-├── notes.md               # 当月の作業メモ
+├── notes.md               # 現在のREQ作業中の気づき・メモ（完了時にテンプレに戻る）
+├── KNOWLEDGE.md           # プロジェクト全体を通して得られた気づき・ノウハウ
 └── completed/             # 完了した要件ごとのフォルダ
     └── REQ-XXX/
         ├── requirement.md  # 要件詳細
         ├── work-plan.md    # 作業計画・チェックリスト
-        └── notes.md        # 作業固有のメモ
+        └── notes.md        # その作業で得られた気づき・感想のログ
 ```
 
 ### 各ドキュメントの役割
@@ -66,19 +67,23 @@
 - **保持ルール**: 現在の作業のみ。完了したらcompleted/REQ-XXX/へ移動
 
 #### notes.md
-- **目的**: 作業履歴と技術的な知見を蓄積、テスト時の問題も記録
+- **目的**: 現在のREQ作業中の気づき・メモを記録
 - **記述者**: 主にClaude Code、開発者も追記可
-- **内容**: 作業ログ、解決した問題、Tipsなど、テストで発見した問題点
-- **保持ルール**: 月次セクション管理。月末に当月セクションを折りたたみ、重要な情報のみ残す
-  - 構造: `## YYYY-MM (当月)` → `## YYYY-MM` → `## Tips (常時参照)`
-  - 完了した要件の詳細ログはcompleted/REQ-XXX/notes.mdに保存されている
+- **内容**: 作業中の気づき、解決した問題、テストで発見した問題点など
+- **保持ルール**: REQ作業中のみ使用。完了時にcompleted/REQ-XXX/notes.mdに移動し、テンプレに戻る
+
+#### KNOWLEDGE.md
+- **目的**: プロジェクト全体を通して得られた気づき・ノウハウを蓄積
+- **記述者**: 主にClaude Code（完了処理時）、開発者も追記可
+- **内容**: REQ固有ではなく、プロジェクト横断で役立つ知見、技術Tips、設計パターンなど
+- **保持ルール**: 常に保持。完了処理時に、notes.mdから汎用的な知見を抽出して追記
 
 #### completed/REQ-XXX/
 - **目的**: 完了した要件に関する全情報を保管
 - **構造**:
   - `requirement.md`: その要件の詳細（requirements.mdから抽出）
   - `work-plan.md`: 作業計画と実行結果
-  - `notes.md`: その作業固有の重要なメモと気付き・感想
+  - `notes.md`: その作業で得られた気づき・感想のログ（.claude/notes.mdから移動）
 - **作成タイミング**: Step 6完了後、開発者の指示で移動
 
 ## 完了時の移動ルール
@@ -94,13 +99,17 @@
 - `completed/REQ-XXX/` フォルダを作成
 - requirements.mdから該当要件を抽出して `completed/REQ-XXX/requirement.md` として保存
 - work-plan.mdの内容を `completed/REQ-XXX/work-plan.md` として保存
-- notes.mdから関連する重要な情報を `completed/REQ-XXX/notes.md` として抽出　その際、今回の作業の気付き・感想も記述する
+- notes.mdの内容を `completed/REQ-XXX/notes.md` として保存（作業で得られた気づき・感想を記述）
+- notes.mdから汎用的な知見を抽出して `KNOWLEDGE.md` に追記
 - requirements.mdとwork-plan.mdから該当部分を削除
+- notes.mdをテンプレに戻す
 
 ### 3. 結果
 - requirements.mdは次の作業のみ
 - work-plan.mdは空（または次の作業待ち）
+- notes.mdはテンプレに戻る
 - 完了した要件の情報はcompleted/REQ-XXX/に集約
+- 汎用的な知見はKNOWLEDGE.mdに蓄積
 
 ## 簡略指示の定義
 
@@ -127,10 +136,6 @@
 - 「archive REQ-XXX」
 → completed/REQ-XXX/フォルダを作成し、関連ファイルを移動
 
-### 月次アーカイブ
-- 「archive notes」
-- 「月次アーカイブ」
-→ notes.mdを月次アーカイブとして保存
 
 ### 複合指示
 - 「implement and test REQ-XXX」
@@ -222,7 +227,8 @@ pytest tests/ --cov
 - [作業指示書](./requirements.md) - 現在の作業指示
 - [仕様書ディレクトリ](./spec/) - プロジェクトの設計書と実装記録
 - [現在の作業計画](./work-plan.md) - 進行中の作業チェックリスト
-- [開発ノート](./notes.md) - 月次の作業履歴・技術メモ
+- [作業メモ](./notes.md) - 現在のREQ作業中の気づき・メモ
+- [ナレッジベース](./KNOWLEDGE.md) - プロジェクト全体を通して得られた知見・ノウハウ
 - [完了した要件](./completed/) - 過去に完了した全要件
 
 ## 開発開始時の確認事項
