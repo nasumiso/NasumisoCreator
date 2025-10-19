@@ -84,6 +84,7 @@ python scripts/auto_caption.py \
 | `--input` | str | ✓ | - | 入力画像ディレクトリのパス |
 | `--output` | str | ✓ | - | 出力ディレクトリのパス |
 | `--threshold` | float | - | 0.35 | タグの信頼度しきい値（0.0-1.0） |
+| `--use-coreml` | flag | - | False | CoreML高速化を有効にする（Mac Apple Silicon用） |
 
 **処理フロー**:
 1. **モデル読み込み**
@@ -113,11 +114,12 @@ python scripts/auto_caption.py \
 
 **技術仕様**:
 - **モデル**: WD14 Tagger v2 (wd-v1-4-moat-tagger-v2)
-- **ランタイム**: ONNX Runtime
+- **ランタイム**: ONNX Runtime (CoreMLExecutionProvider対応)
 - **入力サイズ**: 448x448 (RGB)
 - **タグ数**: 9,083種類のDanbooruタグ
 - **推奨しきい値**: 0.35 (P=Rポイント: 0.3771)
 - **ライブラリ**: `huggingface_hub`, `onnxruntime`, `Pillow`, `numpy`
+- **高速化**: CoreMLExecutionProvider（Mac Apple Silicon対応）
 
 **重要な技術的注意事項**:
 
@@ -133,12 +135,45 @@ python scripts/auto_caption.py \
    - ONNX Runtimeでの推論が必須
    - `AutoModel.from_pretrained()`は使用不可
 
+**CoreML高速化（2025-10-19追加、デフォルト無効）**:
+
+`--use-coreml`オプションでCoreMLExecutionProviderを使用可能：
+```python
+# デフォルト（CPU専用）
+providers = ['CPUExecutionProvider']
+
+# --use-coreml 指定時
+providers = ['CoreMLExecutionProvider', 'CPUExecutionProvider']
+session = ort.InferenceSession(model_path, providers=providers)
+```
+
+- **対応環境**: Mac（Apple Silicon）
+- **高速化デバイス**: Neural Engine
+- **デフォルト**: 無効（CPU実行）
+- **有効化方法**: `--use-coreml`フラグを指定
+- **フォールバック**: CoreML利用不可時は自動的にCPU
+- **ハイブリッド実行**: CoreML対応ノード（約74%）+ CPU非対応ノード（約26%）
+- **プロバイダー確認**: `session.get_providers()` で実行時確認可能
+
+**注意事項**:
+- ベンチマークの結果、小規模バッチ処理（1枚ずつ）ではCPU専用より約2.7倍遅い
+- 理由: ハイブリッド実行のオーバーヘッド、初期化コスト
+- 大規模モデルや大量バッチ処理では効果がある可能性あり
+- 現在のユースケースでは**CPU専用（デフォルト）を推奨**
+
 **パフォーマンス**:
-- CPU推論: 約1-2秒/画像（Mac M1基準）
-- GPU推論: 未対応（Mac環境）
+- **CPU推論**: 約1.07秒/画像（Mac M1基準、15枚テスト）
+- **CoreML推論**: 約2.92秒/画像（Mac M1基準、15枚テスト、--use-coreml有効時）
 - メモリ使用量: 約500MB（モデル読み込み時）
 
+**ベンチマーク結果**（MacBook Air M1、15枚の画像）:
+| モード | 総処理時間 | 平均処理時間/枚 |
+|--------|-----------|----------------|
+| CPU専用（デフォルト） | 16.05秒 | 1.070秒/枚 |
+| CoreML有効 | 43.80秒 | 2.920秒/枚 |
+
 **実装済み**: 2025-10-19
+**CoreML対応**: 2025-10-19（オプション機能、デフォルト無効）
 
 ---
 

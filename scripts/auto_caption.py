@@ -31,17 +31,20 @@ TAGS_FILENAME = "selected_tags.csv"
 class WD14Tagger:
     """WD14 Tagger v2を使った自動タグ付けクラス"""
 
-    def __init__(self, threshold: float = 0.35):
+    def __init__(self, threshold: float = 0.35, use_coreml: bool = False):
         """
         初期化
 
         Args:
             threshold: タグの信頼度しきい値（デフォルト: 0.35）
+            use_coreml: CoreML高速化を使用するか（デフォルト: False）
         """
         self.threshold = threshold
         self.image_size = 448
+        self.use_coreml = use_coreml
 
         print(f"信頼度しきい値: {self.threshold}")
+        print(f"実行モード: {'CoreML有効' if use_coreml else 'CPU専用'}")
         print("モデルをロード中...")
 
         # ONNXモデルのダウンロード
@@ -51,7 +54,25 @@ class WD14Tagger:
         )
 
         # ONNXランタイムセッションの作成
-        self.session = ort.InferenceSession(model_path)
+        if use_coreml:
+            # CoreMLExecutionProviderを優先的に使用（Mac用高速化）
+            # 利用不可の場合は自動的にCPUExecutionProviderにフォールバック
+            # 注意: 小規模バッチ処理ではオーバーヘッドによりCPUより遅くなる可能性あり
+            providers = ['CoreMLExecutionProvider', 'CPUExecutionProvider']
+        else:
+            # CPU専用（デフォルト）
+            providers = ['CPUExecutionProvider']
+
+        self.session = ort.InferenceSession(model_path, providers=providers)
+
+        # 使用中のプロバイダーを確認
+        available_providers = self.session.get_providers()
+        print(f"使用プロバイダー: {available_providers}")
+        if 'CoreMLExecutionProvider' in available_providers:
+            print("✓ CoreML高速化が有効です（Apple Neural Engine使用）")
+            print("  注意: 小規模バッチではCPU専用より遅くなる可能性があります")
+        else:
+            print("ℹ CPU実行モード")
 
         # タグリストの取得
         self.tags = self._load_tags()
@@ -180,7 +201,8 @@ def get_image_files(input_dir: Path) -> List[Path]:
 def process_images(
     input_dir: Path,
     output_dir: Path,
-    threshold: float = 0.35
+    threshold: float = 0.35,
+    use_coreml: bool = False
 ) -> Tuple[int, int]:
     """
     画像を一括処理してタグ付け
@@ -189,6 +211,7 @@ def process_images(
         input_dir: 入力ディレクトリ
         output_dir: 出力ディレクトリ
         threshold: タグの信頼度しきい値（デフォルト: 0.35）
+        use_coreml: CoreML高速化を使用するか（デフォルト: False）
 
     Returns:
         (成功数, スキップ数) のタプル
@@ -208,7 +231,7 @@ def process_images(
     print("-" * 50)
 
     # WD14 Taggerを初期化
-    tagger = WD14Tagger(threshold=threshold)
+    tagger = WD14Tagger(threshold=threshold, use_coreml=use_coreml)
 
     success_count = 0
     skip_count = 0
@@ -288,6 +311,12 @@ def main():
         help='タグの信頼度しきい値（デフォルト: 0.35）'
     )
 
+    parser.add_argument(
+        '--use-coreml',
+        action='store_true',
+        help='CoreML高速化を有効にする（Mac Apple Silicon用、デフォルト: 無効）'
+    )
+
     args = parser.parse_args()
 
     # パスをPathオブジェクトに変換
@@ -304,7 +333,7 @@ def main():
         sys.exit(1)
 
     # 処理実行
-    success, skip = process_images(input_dir, output_dir, args.threshold)
+    success, skip = process_images(input_dir, output_dir, args.threshold, args.use_coreml)
 
     # 結果に応じて終了コードを設定
     if success == 0:
