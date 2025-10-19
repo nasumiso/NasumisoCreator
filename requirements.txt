@@ -4,6 +4,7 @@
 Pillow>=10.0.0
 
 # WD14 Tagger (自動タグ付け)
+# Note: onnxruntime 1.15.0+ includes CoreMLExecutionProvider for Mac acceleration
 onnxruntime>=1.15.0
 numpy>=1.24.0
 pandas>=2.0.0

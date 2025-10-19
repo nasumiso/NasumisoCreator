@@ -52,6 +52,7 @@ python scripts/prepare_images.py \
 - WD14 Tagger v2を使って画像の内容を分析
 - Danbooruタグ形式で自動タグ生成（例: `1girl, long_hair, blue_eyes, ...`）
 - タグファイル（.txt）を画像と同じ名前で生成
+- **Mac（Apple Silicon）でCoreML高速化オプション対応**（デフォルト無効）
 
 **基本的な使い方**:
 ```bash
@@ -68,8 +69,12 @@ python scripts/auto_caption.py \
 **ポイント**:
 - しきい値（threshold）を下げるとタグが増える
 - 推奨は0.35（精度と網羅性のバランスが良い）
+- デフォルトはCPU実行（高速・安定）
+- `--use-coreml`オプションでCoreML高速化を有効化可能（実験的機能）
+  - 注意: 小規模バッチ処理ではCPUより遅くなる可能性あり
 
 **実装日**: 2025-10-19
+**CoreML対応**: 2025-10-19
 
 ---
 

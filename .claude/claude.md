@@ -15,9 +15,9 @@
 1. **作業指示** - 開発者が作業指示を出す（大きな作業はrequirements.mdに記述）
 2. **作業計画** - Claude Codeがwork-plan.mdに作業計画をチェックリスト形式で記述
 3. **計画確認** - 開発者が計画を確認し、実装指示を出す
-4. **実装** - Claude Codeが実装を行う（進捗はwork-plan.mdのチェックリストで管理）
+4. **実装** - Claude Codeが実装を行う（進捗はwork-plan.mdのチェックリストで管理、spec.mdやreference.mdの更新は不要）
 5. **テスト** - Claude Codeがテストを実行し、work-plan.mdのチェックリストを完了させる。問題があればnotes.mdに記録
-6. **仕様反映と完了処理** - 開発者が成果物を確認後、spec/spec.mdへの仕様反映を指示。完了後、completed/REQ-XXX/フォルダに移動
+6. **仕様反映と完了処理** - 開発者が成果物を確認後、spec/spec.md、reference.mdへの仕様反映を指示。完了後、completed/REQ-XXX/フォルダに移動
 
 ## ドキュメント構成
 ```
@@ -36,7 +36,7 @@
     └── REQ-XXX/
         ├── requirement.md  # 要件詳細
         ├── work-plan.md    # 作業計画・チェックリスト
-        └── notes.md        # その作業で得られた気づき・感想のログ
+        └── notes.md        # その作業で得られた気づき・メモのログとふりかえり・感想
 ```
 
 ### 各ドキュメントの役割
@@ -52,7 +52,7 @@
 - **目的**: プロジェクトの仕様を構造化して記録
 - **記述者**:
   - 初期作成: 開発者またはClaude Code
-  - 実装後の追記: Claude Code（spec.mdとreference.mdに記録）
+  - 実装完了後の追記: Claude Code（spec.mdとreference.mdに記録）
   - 随時編集: 開発者（必要に応じて修正・更新）
 - **ファイル構成**:
   - **overview.md**: プロジェクト概要・アーキテクチャ（背景、目的、7ステップワークフロー）
@@ -85,7 +85,7 @@
 - **構造**:
   - `requirement.md`: その要件の詳細（requirements.mdから抽出）
   - `work-plan.md`: 作業計画と実行結果
-  - `notes.md`: その作業で得られた気づき・感想のログ（.claude/notes.mdから移動）
+  - `notes.md`: その作業で得られた気づき・メモのログ（.claude/notes.mdから移動）とふりかえり・感想
 - **作成タイミング**: Step 6完了後、開発者の指示で移動
 
 ## 完了時の移動ルール
@@ -101,7 +101,7 @@
 - `completed/REQ-XXX/` フォルダを作成
 - requirements.mdから該当要件を抽出して `completed/REQ-XXX/requirement.md` として保存
 - work-plan.mdの内容を `completed/REQ-XXX/work-plan.md` として保存
-- notes.mdの内容を `completed/REQ-XXX/notes.md` として保存（実装履歴・気づき・感想を記述）
+- notes.mdの内容を適宜要約して、 `completed/REQ-XXX/notes.md` として保存、ふりかえりとして感想を記述
 - 実装した機能の使い方を `spec/spec.md` に追記（ユーザー向け・「何ができるか」）
 - 実装した機能の技術詳細を `spec/reference.md` に追記（開発者向け・パラメータ、処理フロー、技術制約）
 - notes.mdから汎用的な知見を抽出して `KNOWLEDGE.md` に追記
@@ -245,8 +245,7 @@ Claude Codeでの作業開始時は：
 3. requirements.mdで現在の作業指示を確認
 4. work-plan.mdで進行中のタスクがあるか確認
 5. 新規作業の場合はwork-plan.mdに計画を記述してから実装開始
-6. 実装完了後はspec/implementation.mdに実装内容を記録
-7. 要件完了時は開発者の指示でcompleted/REQ-XXX/に移動
+6. 要件完了時は開発者の指示でcompleted/REQ-XXX/に移動
 
 ## プロジェクト固有の情報
 

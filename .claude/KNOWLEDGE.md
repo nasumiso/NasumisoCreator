@@ -149,6 +149,58 @@ git checkout -b feature/xxx
 
 ---
 
+## ハードウェアアクセラレーション
+
+### CoreML（Mac Apple Silicon）
+
+**適用条件**:
+- 大規模モデル（パラメータ数が多い）
+- バッチ処理（複数データを一度に処理）
+- CoreML完全対応モデル（100%のノードがCoreML実行可能）
+
+**不向きな条件**:
+- 小規模バッチ処理（1枚ずつ処理など）
+- 軽量モデル（CPU実行でも十分高速）
+- ハイブリッド実行（CoreMLとCPUの切り替えが頻発）
+
+**実測例（WD14 Tagger、15枚処理）**:
+- CPU専用: 16.05秒（1.070秒/枚）
+- CoreML有効: 43.80秒（2.920秒/枚）
+- 結果: CoreMLの方が2.7倍遅い
+
+**理由**:
+1. プロバイダー間の切り替えオーバーヘッド
+2. 初期化コスト（小規模処理では毎回発生）
+3. メモリコピー・データ変換コスト
+
+**教訓**:
+- **高速化技術は万能ではない**
+- **実測なしの最適化は危険**
+- ベンチマークを取ってから実装判断をすべき
+
+### 実装方針
+
+```python
+# デフォルトは実用的な設定（CPU）
+# オプションで高速化機能を提供（--use-coreml）
+if use_coreml:
+    # CoreMLが利用可能か事前チェック（クロスプラットフォーム対応）
+    available = ort.get_available_providers()
+    if 'CoreMLExecutionProvider' in available:
+        providers = ['CoreMLExecutionProvider', 'CPUExecutionProvider']
+    else:
+        # CoreML未サポート環境では警告を表示してCPUにフォールバック
+        print("警告: CoreMLExecutionProviderが利用できません。CPUで実行します。")
+        providers = ['CPUExecutionProvider']
+else:
+    providers = ['CPUExecutionProvider']
+```
+
+**重要**: ONNX Runtimeは利用できないプロバイダーを指定すると`ValueError`を発生させる。
+自動フォールバックは行われないため、`ort.get_available_providers()`で事前チェックが必須。
+
+---
+
 ## 今後の追加予定
 
 - LoRA学習のパラメータチューニング知見
