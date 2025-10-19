@@ -38,8 +38,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 3. `.claude/requirements.md`で現在の作業指示を確認する
 4. `.claude/work-plan.md`で進行中のタスクがあるか確認する
 5. 新規作業の場合：実装前に必ず`work-plan.md`に計画を記述する
-6. 実装完了後：`spec/implementation.md`に実装内容を記録する
-7. 要件完了時：開発者の指示で`completed/REQ-XXX/`に移動する
+6. 実装完了後：`spec/spec.md`（ユーザー向け）と`spec/reference.md`（開発者向け）に機能仕様を記録する
+7. 要件完了時：開発者の指示で`completed/REQ-XXX/`に移動、spec.mdとreference.mdに仕様を反映
 
 ## プロジェクト構造
 
@@ -52,8 +52,10 @@ NasumisoCreator/
 │   ├── notes.md                    # 現在のREQ作業中の気づき・メモ
 │   ├── KNOWLEDGE.md                # プロジェクト全体の知見・ノウハウ
 │   ├── spec/                       # 仕様書
-│   │   ├── overview.md            # プロジェクト概要
-│   │   └── implementation.md      # 実装済み機能
+│   │   ├── overview.md            # プロジェクト概要・アーキテクチャ
+│   │   ├── spec.md                # 実装済み機能の使い方（ユーザー向け）
+│   │   ├── reference.md           # 技術詳細・API仕様（開発者向け）
+│   │   └── original/              # 初期要件定義
 │   └── completed/                  # 完了した要件
 │
 ├── projects/                       # プロジェクトごとのデータ管理
@@ -208,8 +210,9 @@ python scripts/organize_dataset.py --project nasumiso_v1
 ## 参照ドキュメント
 
 - `.claude/claude.md` - ワークフロー詳細ルール
-- `.claude/spec/implementation.md` - 実装済み機能の詳細
+- `.claude/spec/overview.md` - プロジェクト概要・アーキテクチャ
+- `.claude/spec/spec.md` - 実装済み機能の使い方（ユーザー向け）
+- `.claude/spec/reference.md` - 技術詳細・API仕様（開発者向け）
 - `.claude/KNOWLEDGE.md` - プロジェクト全体の知見・ノウハウ
-- `.claude/spec/overview.md` - プロジェクト全体仕様
 - `.claude/spec/original/要件定義書.md` - MVP要件定義
 - `.claude/spec/original/開発手順書.md` - Mac環境向け学習手順

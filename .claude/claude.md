@@ -17,7 +17,7 @@
 3. **計画確認** - 開発者が計画を確認し、実装指示を出す
 4. **実装** - Claude Codeが実装を行う（進捗はwork-plan.mdのチェックリストで管理）
 5. **テスト** - Claude Codeがテストを実行し、work-plan.mdのチェックリストを完了させる。問題があればnotes.mdに記録
-6. **仕様反映と完了処理** - 開発者が成果物を確認後、spec/implementation.mdへの反映を指示。完了後、completed/REQ-XXX/フォルダに移動
+6. **仕様反映と完了処理** - 開発者が成果物を確認後、spec/spec.mdへの仕様反映を指示。完了後、completed/REQ-XXX/フォルダに移動
 
 ## ドキュメント構成
 ```
@@ -25,9 +25,10 @@
 ├── claude.md              # このファイル（プロジェクト概要・開発ルール）
 ├── requirements.md        # 現在の作業指示（進行中・未着手のみ）
 ├── spec/                  # 仕様書ディレクトリ
-│   ├── overview.md       # プロジェクト概要（任意）
-│   ├── implementation.md # 実装済み機能（Claude Codeが記録）
-│   └── ...               # その他プロジェクト固有の仕様書
+│   ├── overview.md       # プロジェクト概要・アーキテクチャ
+│   ├── spec.md           # 実装済み機能の使い方（ユーザー向け）
+│   ├── reference.md      # 技術詳細・API仕様（開発者向け）
+│   └── original/         # 初期要件定義
 ├── work-plan.md           # 現在の作業計画・チェックリスト
 ├── notes.md               # 現在のREQ作業中の気づき・メモ（完了時にテンプレに戻る）
 ├── KNOWLEDGE.md           # プロジェクト全体を通して得られた気づき・ノウハウ
@@ -51,12 +52,13 @@
 - **目的**: プロジェクトの仕様を構造化して記録
 - **記述者**:
   - 初期作成: 開発者またはClaude Code
-  - 実装後の追記: Claude Code（implementation.mdに実装内容を記録）
+  - 実装後の追記: Claude Code（spec.mdとreference.mdに記録）
   - 随時編集: 開発者（必要に応じて修正・更新）
-- **ファイル構成**: プロジェクトに応じて柔軟に設定
-  - **implementation.md**: 実装済み機能の記録（必須）
-  - **overview.md**: プロジェクト概要（推奨）
-  - その他、プロジェクトに応じた仕様書を追加
+- **ファイル構成**:
+  - **overview.md**: プロジェクト概要・アーキテクチャ（背景、目的、7ステップワークフロー）
+  - **spec.md**: 実装済み機能の使い方（ユーザー向け・「何ができるか」に焦点）
+  - **reference.md**: 技術詳細・API仕様（開発者向け・パラメータ、処理フロー、技術制約）
+  - **original/**: 初期要件定義書
 - **保持ルール**: 常に最新の仕様を保持
 
 #### work-plan.md
@@ -99,7 +101,9 @@
 - `completed/REQ-XXX/` フォルダを作成
 - requirements.mdから該当要件を抽出して `completed/REQ-XXX/requirement.md` として保存
 - work-plan.mdの内容を `completed/REQ-XXX/work-plan.md` として保存
-- notes.mdの内容を `completed/REQ-XXX/notes.md` として保存（作業で得られた気づき・感想を記述）
+- notes.mdの内容を `completed/REQ-XXX/notes.md` として保存（実装履歴・気づき・感想を記述）
+- 実装した機能の使い方を `spec/spec.md` に追記（ユーザー向け・「何ができるか」）
+- 実装した機能の技術詳細を `spec/reference.md` に追記（開発者向け・パラメータ、処理フロー、技術制約）
 - notes.mdから汎用的な知見を抽出して `KNOWLEDGE.md` に追記
 - requirements.mdとwork-plan.mdから該当部分を削除
 - notes.mdをテンプレに戻す
@@ -108,7 +112,9 @@
 - requirements.mdは次の作業のみ
 - work-plan.mdは空（または次の作業待ち）
 - notes.mdはテンプレに戻る
-- 完了した要件の情報はcompleted/REQ-XXX/に集約
+- 完了した要件の実装履歴はcompleted/REQ-XXX/notes.mdに保存
+- 実装した機能の使い方はspec/spec.mdに追記（ユーザー向け）
+- 実装した機能の技術詳細はspec/reference.mdに追記（開発者向け）
 - 汎用的な知見はKNOWLEDGE.mdに蓄積
 
 ## 簡略指示の定義

@@ -21,9 +21,11 @@
 
 ## 詳細ドキュメント
 
-- [プロジェクト概要](./.claude/spec/overview.md)
-- [要件定義書](./.claude/spec/original/要件定義書.md)
-- [開発手順書](./.claude/spec/original/開発手順書.md)
+- [プロジェクト概要](./.claude/spec/overview.md) - 背景、目的、アーキテクチャ
+- [機能仕様](./.claude/spec/spec.md) - 実装済み機能の使い方（ユーザー向け）
+- [技術リファレンス](./.claude/spec/reference.md) - 技術詳細・API仕様（開発者向け）
+- [要件定義書](./.claude/spec/original/要件定義書.md) - MVP要件定義
+- [開発手順書](./.claude/spec/original/開発手順書.md) - Mac環境向け学習手順
 
 ## セットアップ
 
