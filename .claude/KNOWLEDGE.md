@@ -184,10 +184,20 @@ git checkout -b feature/xxx
 # デフォルトは実用的な設定（CPU）
 # オプションで高速化機能を提供（--use-coreml）
 if use_coreml:
-    providers = ['CoreMLExecutionProvider', 'CPUExecutionProvider']
+    # CoreMLが利用可能か事前チェック（クロスプラットフォーム対応）
+    available = ort.get_available_providers()
+    if 'CoreMLExecutionProvider' in available:
+        providers = ['CoreMLExecutionProvider', 'CPUExecutionProvider']
+    else:
+        # CoreML未サポート環境では警告を表示してCPUにフォールバック
+        print("警告: CoreMLExecutionProviderが利用できません。CPUで実行します。")
+        providers = ['CPUExecutionProvider']
 else:
     providers = ['CPUExecutionProvider']
 ```
+
+**重要**: ONNX Runtimeは利用できないプロバイダーを指定すると`ValueError`を発生させる。
+自動フォールバックは行われないため、`ort.get_available_providers()`で事前チェックが必須。
 
 ---
 

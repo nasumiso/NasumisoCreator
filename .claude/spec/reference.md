@@ -142,8 +142,16 @@ python scripts/auto_caption.py \
 # デフォルト（CPU専用）
 providers = ['CPUExecutionProvider']
 
-# --use-coreml 指定時
-providers = ['CoreMLExecutionProvider', 'CPUExecutionProvider']
+# --use-coreml 指定時（プロバイダー可用性チェック付き）
+if use_coreml:
+    available = ort.get_available_providers()
+    if 'CoreMLExecutionProvider' in available:
+        providers = ['CoreMLExecutionProvider', 'CPUExecutionProvider']
+    else:
+        # CoreML未サポート環境では警告してCPUにフォールバック
+        print("警告: CoreMLExecutionProviderが利用できません。CPUで実行します。")
+        providers = ['CPUExecutionProvider']
+
 session = ort.InferenceSession(model_path, providers=providers)
 ```
 
@@ -151,9 +159,15 @@ session = ort.InferenceSession(model_path, providers=providers)
 - **高速化デバイス**: Neural Engine
 - **デフォルト**: 無効（CPU実行）
 - **有効化方法**: `--use-coreml`フラグを指定
-- **フォールバック**: CoreML利用不可時は自動的にCPU
+- **フォールバック**: CoreML利用不可時は警告表示してCPUで実行（事前チェック実装）
+- **クロスプラットフォーム対応**: Linux/Windows環境でも安全に動作
 - **ハイブリッド実行**: CoreML対応ノード（約74%）+ CPU非対応ノード（約26%）
 - **プロバイダー確認**: `session.get_providers()` で実行時確認可能
+
+**重要な実装ノート**:
+ONNX Runtimeは利用できないプロバイダーを指定すると`ValueError`を発生させる。
+自動フォールバックは行われないため、`ort.get_available_providers()`による事前チェックが必須。
+これにより、CoreML非対応環境（Linux/Windows等）でも`--use-coreml`指定時にクラッシュせずCPUで実行できる。
 
 **注意事項**:
 - ベンチマークの結果、小規模バッチ処理（1枚ずつ）ではCPU専用より約2.7倍遅い

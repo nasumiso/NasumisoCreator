@@ -55,10 +55,17 @@ class WD14Tagger:
 
         # ONNXランタイムセッションの作成
         if use_coreml:
-            # CoreMLExecutionProviderを優先的に使用（Mac用高速化）
-            # 利用不可の場合は自動的にCPUExecutionProviderにフォールバック
-            # 注意: 小規模バッチ処理ではオーバーヘッドによりCPUより遅くなる可能性あり
-            providers = ['CoreMLExecutionProvider', 'CPUExecutionProvider']
+            # CoreMLExecutionProviderが利用可能か事前にチェック
+            available = ort.get_available_providers()
+            if 'CoreMLExecutionProvider' in available:
+                # CoreMLExecutionProviderを優先的に使用（Mac用高速化）
+                # 注意: 小規模バッチ処理ではオーバーヘッドによりCPUより遅くなる可能性あり
+                providers = ['CoreMLExecutionProvider', 'CPUExecutionProvider']
+            else:
+                # CoreML未サポート環境ではCPUで実行
+                print("警告: CoreMLExecutionProviderが利用できません。CPUで実行します。")
+                print("（CoreMLはApple Silicon Mac専用です）")
+                providers = ['CPUExecutionProvider']
         else:
             # CPU専用（デフォルト）
             providers = ['CPUExecutionProvider']
