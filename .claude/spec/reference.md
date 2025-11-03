@@ -308,11 +308,11 @@ TAG_TRANSLATION = {
 
 **機能**: kohya_ss標準フォーマットでデータセットを整形する
 
-**ステータス**: 未実装
+**ステータス**: 未実装（現在は手動でGoogle Driveにアップロード）
 
 **想定仕様**:
 - 入力: `projects/nasumiso_v1/3_tagged/`
-- 出力: `projects/nasumiso_v1/4_dataset/`
+- 出力: Google Drive `/MyDrive/NasuTomo/datasets/`
 - kohya_ss標準フォーマット:
   - `<繰り返し回数>_<プロジェクト名>/` ディレクトリ構造
   - 画像と.txtファイルを同じディレクトリに配置
@@ -321,17 +321,201 @@ TAG_TRANSLATION = {
 
 ## LoRA学習
 
-### train_lora_sd15.ipynb - SD 1.5用LoRA学習
+### train_lora_nasutomo.ipynb - Google Colab用LoRA学習ノートブック
 
 **機能**: Google ColabでLoRA学習を実行する
 
-**ステータス**: 未実装
+**ステータス**: 実装済み
 
-**想定技術スタック**:
-- **プラットフォーム**: Google Colab
-- **学習ツール**: kohya_ss
-- **ベースモデル**: Stable Diffusion 1.5
-- **出力形式**: `.safetensors`
+**技術スタック**:
+- **プラットフォーム**: Google Colab（GPU: T4/V100等、無料版/Colab Pro）
+- **学習ツール**: kohya_ss (bmaltais/kohya_ss)
+- **ベースモデル**: Anything V5 (anything-v5.safetensors, SD 1.5ベース)
+- **出力形式**: `.safetensors`（fp16精度）
+
+**処理フロー**:
+
+1. **環境セットアップ**
+   ```python
+   # Google Driveマウント
+   from google.colab import drive
+   drive.mount('/content/drive')
+
+   # kohya_ssクローン
+   !git clone https://github.com/bmaltais/kohya_ss.git
+
+   # セットアップ実行
+   !./setup.sh
+   !pip install voluptuous
+
+   # Accelerate設定
+   !accelerate config default
+   ```
+
+2. **ベースモデルダウンロード**
+   ```bash
+   # Anything V5をCivitaiからダウンロード
+   wget -O anything-v5.safetensors "https://civitai.com/api/download/models/30163"
+   # 保存先: /content/drive/MyDrive/NasuTomo/models/
+   ```
+
+3. **データセット配置**
+   - 学習データ: `/content/drive/MyDrive/NasuTomo/datasets/`
+   - 画像と.txtファイルをペアで配置
+
+4. **LoRA学習実行**
+   ```bash
+   accelerate launch --num_cpu_threads_per_process=1 ./sd-scripts/train_network.py \
+     --enable_bucket \
+     --min_bucket_reso=256 \
+     --max_bucket_reso=1024 \
+     --pretrained_model_name_or_path="/content/drive/MyDrive/NasuTomo/models/anything-v5.safetensors" \
+     --train_data_dir="/content/drive/MyDrive/NasuTomo/datasets" \
+     --output_dir="/content/drive/MyDrive/NasuTomo/output" \
+     --output_name="nasumiso_v1" \
+     --resolution="512,512" \
+     --network_module=networks.lora \
+     --network_dim=64 \
+     --network_alpha=32 \
+     --train_batch_size=1 \
+     --gradient_accumulation_steps=2 \
+     --max_train_epochs=10 \
+     --learning_rate=1e-4 \
+     --lr_scheduler="cosine_with_restarts" \
+     --lr_warmup_steps=100 \
+     --optimizer_type="AdamW8bit" \
+     --mixed_precision="fp16" \
+     --save_precision="fp16" \
+     --save_every_n_epochs=1 \
+     --cache_latents \
+     --cache_latents_to_disk \
+     --gradient_checkpointing \
+     --clip_skip=2 \
+     --xformers \
+     --save_model_as=safetensors \
+     --logging_dir="/content/drive/MyDrive/NasuTomo/logs" \
+     --log_with=tensorboard
+   ```
+
+**主要パラメータ詳細**:
+
+| パラメータ | 値 | 説明 |
+|-----------|-----|------|
+| `--pretrained_model_name_or_path` | anything-v5.safetensors | ベースモデルのパス |
+| `--train_data_dir` | /MyDrive/NasuTomo/datasets | 学習データディレクトリ |
+| `--output_dir` | /MyDrive/NasuTomo/output | 出力ディレクトリ |
+| `--output_name` | nasumiso_v1 | 出力ファイル名 |
+| `--resolution` | 512,512 | 学習解像度 |
+| `--network_dim` | 64 | LoRAのrank（次元数） |
+| `--network_alpha` | 32 | LoRAのアルファ値（スケール調整） |
+| `--train_batch_size` | 1 | バッチサイズ |
+| `--gradient_accumulation_steps` | 2 | 勾配蓄積ステップ（実質バッチサイズ2） |
+| `--max_train_epochs` | 10 | 最大エポック数 |
+| `--learning_rate` | 1e-4 | 学習率 |
+| `--lr_scheduler` | cosine_with_restarts | 学習率スケジューラ |
+| `--optimizer_type` | AdamW8bit | オプティマイザ（8bit量子化） |
+| `--mixed_precision` | fp16 | 混合精度学習 |
+| `--save_precision` | fp16 | 保存精度 |
+| `--save_every_n_epochs` | 1 | エポックごとに保存 |
+| `--cache_latents` | flag | VAE潜在表現をキャッシュ（高速化） |
+| `--cache_latents_to_disk` | flag | 潜在表現をディスクにキャッシュ |
+| `--gradient_checkpointing` | flag | 勾配チェックポイント（メモリ節約） |
+| `--clip_skip` | 2 | CLIPレイヤースキップ |
+| `--xformers` | flag | xFormers（Attention高速化） |
+| `--enable_bucket` | flag | バケット機能（アスペクト比維持） |
+| `--min_bucket_reso` | 256 | 最小バケット解像度 |
+| `--max_bucket_reso` | 1024 | 最大バケット解像度 |
+
+**TensorBoard可視化**:
+```python
+%load_ext tensorboard
+%tensorboard --logdir="/content/drive/MyDrive/NasuTomo/logs"
+```
+
+**出力ファイル**:
+- 学習済みLoRAモデル: `/MyDrive/NasuTomo/output/nasumiso_v1.safetensors`
+- エポックごとのチェックポイント: `nasumiso_v1-000001.safetensors`, `nasumiso_v1-000002.safetensors`, ...
+- ログ: `/MyDrive/NasuTomo/logs/`
+
+**パフォーマンス**:
+- **学習時間**: 15枚・10エポックで約20〜30分（Google Colab無料版、T4 GPU基準）
+- **メモリ使用量**: 約8〜10GB（GPU VRAM）
+- **ディスク使用量**: 約50〜100MB/モデル（fp16精度）
+
+**技術的注意事項**:
+- Google Colab無料版は利用時間制限あり（連続12時間、1日最大使用量制限）
+- セッション切断時の対策: Google Driveにデータを保存しているため、再実行可能
+- ベースモデルは初回ダウンロード後、Google Driveに保存され再利用可能
+- 学習データは `3_tagged` から手動でGoogle Driveにアップロード
+
+**実装済み**: 2025-11-02
+
+---
+
+## 画像生成
+
+### StableDiffusion WebUI - Mac環境での画像生成
+
+**機能**: AUTOMATIC1111 WebUIを使用した画像生成
+
+**ステータス**: 実装済み
+
+**技術スタック**:
+- **WebUI**: AUTOMATIC1111/stable-diffusion-webui
+- **実行環境**: Mac（M1チップ）
+- **設置場所**: `~/stable-diffusion-webui/`
+- **アクセスURL**: `http://127.0.0.1:7860/`
+
+**起動方法**:
+```bash
+cd ~/stable-diffusion-webui
+./webui.sh
+```
+
+**技術仕様**:
+- **バックエンド**: PyTorch（MPS backend for Mac）
+- **対応モデル**: Stable Diffusion 1.5, SDXL
+- **LoRA配置先**: `~/stable-diffusion-webui/models/Lora/`
+- **出力ディレクトリ**: `~/stable-diffusion-webui/outputs/txt2img-images/`
+
+**LoRA適用方法**:
+```
+プロンプト: <lora:nasumiso_v1:1.0>, nasumiso_style, 1girl, ...
+```
+- `<lora:モデル名:強度>` 形式で指定
+- 強度は0.0〜1.0（推奨: 0.7〜1.0）
+- モデル名は拡張子なし
+
+**推奨生成パラメータ**:
+| パラメータ | 推奨値 | 説明 |
+|-----------|--------|------|
+| Sampling method | DPM++ 2M Karras | サンプリング方法 |
+| Sampling steps | 20〜30 | サンプリングステップ数 |
+| CFG Scale | 7〜9 | プロンプト遵守度 |
+| Width x Height | 512 x 512 | 解像度（学習時と同じ） |
+| Batch count | 1〜4 | 生成枚数 |
+| Seed | -1（ランダム） | シード値 |
+
+**処理フロー**:
+1. WebUI起動（初回はモデルダウンロード・セットアップ）
+2. LoRAモデルを `models/Lora/` に配置
+3. プロンプト入力（LoRA指定含む）
+4. パラメータ調整
+5. Generate実行
+6. 生成画像は自動保存（`outputs/txt2img-images/日付/`）
+
+**パフォーマンス**:
+- **生成時間**: 512x512で約10〜20秒/枚（Mac M1基準）
+- **起動時間**: 初回起動は3〜5分（モデル読み込み）
+- **メモリ使用量**: 約4〜6GB（システムメモリ）
+
+**技術的注意事項**:
+- Mac M1環境ではMPS（Metal Performance Shaders）を使用
+- CUDA非対応のため、GPU学習はGoogle Colab推奨
+- 生成のみならMac環境で十分実用的
+- LoRAファイル名に日本語は使用不可（認識されない）
+
+**実装済み**: 2025-11-02
 
 ---
 

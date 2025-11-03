@@ -133,21 +133,102 @@ python scripts/generate_jp_tags.py \
 
 ---
 
-## 未実装機能
+## 実装済み機能（続き）
 
-### 5. データセット整形（organize_dataset.py）
+### 5. LoRA学習（train_lora_nasutomo.ipynb）
 
-**目的**: kohya_ss形式でデータセットを整形する
+**目的**: Google ColabでLoRA学習を実行し、なすみその画風を学習したモデルを作成する
 
-**ステータス**: 未実装
+**できること**:
+- Google Colab上でkohya_ssを使用したLoRA学習
+- Anything V5ベースモデルを使用した学習
+- Google Drive経由でのデータセット読み込みと学習済みモデルの保存
+- TensorBoardによる学習進捗の可視化
+- カスタマイズ可能な学習パラメータ（エポック数、学習率、LoRA次元など）
+
+**基本的な使い方**:
+1. `projects/nasumiso_v1/3_tagged/` のタグ付き画像をGoogle Driveの `/MyDrive/NasuTomo/datasets/` にアップロード
+2. Google Colabで `notebooks/train_lora_nasutomo.ipynb` を開く
+3. セルを上から順に実行
+   - Google Driveマウント
+   - kohya_ssセットアップ
+   - Anything V5モデルのダウンロード（初回のみ）
+   - LoRA学習実行
+4. 学習完了後、Google Drive `/MyDrive/NasuTomo/output/` から学習済みモデル（.safetensors）をダウンロード
+5. ローカルの `projects/nasumiso_v1/lora_models/` に保存
+
+**いつ使う？**:
+- タグ付けと共通タグ追加が完了した後
+- 画像生成用のLoRAモデルを作成したい時
+- 学習パラメータを調整して品質を改善したい時
+
+**ポイント**:
+- **ベースモデル**: Anything V5（SD 1.5ベース）を使用
+- **学習時間**: 15枚・10エポックで約20〜30分（Google Colab無料版基準）
+- **推奨パラメータ**:
+  - `network_dim=64`, `network_alpha=32`: LoRAの次元設定
+  - `max_train_epochs=10`: エポック数
+  - `learning_rate=1e-4`: 学習率
+  - `batch_size=1`, `gradient_accumulation_steps=2`: バッチサイズ
+- **TensorBoard**: 学習進捗をリアルタイムで確認可能
+- **データ転送**: Google Driveを介してデータセットと学習済みモデルを転送
+
+**実装日**: 2025-11-02
 
 ---
 
-### 6. LoRA学習（train_lora_sd15.ipynb）
+### 6. 画像生成（StableDiffusion WebUI）
 
-**目的**: Google ColabでLoRA学習を実行する
+**目的**: 学習済みLoRAモデルを使用して、なすみその画風で画像を生成する
 
-**ステータス**: 未実装
+**できること**:
+- AUTOMATIC1111 WebUIを使用した画像生成
+- 学習済みLoRAモデルの適用
+- プロンプトによる詳細な画像制御
+- 生成パラメータの調整（サンプリング方法、ステップ数、CFG Scaleなど）
+- 生成画像の保存と管理
+
+**基本的な使い方**:
+1. 学習済みLoRAモデルを `~/stable-diffusion-webui/models/Lora/` に配置
+2. WebUIを起動:
+   ```bash
+   cd ~/stable-diffusion-webui
+   ./webui.sh
+   ```
+3. ブラウザで `http://127.0.0.1:7860/` にアクセス
+4. プロンプト入力エリアにプロンプトを記述
+   - LoRA適用: `<lora:nasumiso_v1:1.0>` を追加
+   - スタイルタグ: `nasumiso_style` を追加
+5. 「Generate」ボタンで画像生成
+6. 生成画像は `~/stable-diffusion-webui/outputs/` に保存される
+
+**いつ使う？**:
+- LoRA学習が完了した後
+- なすみその画風で新しいイラストを生成したい時
+- プロンプトやパラメータを調整して品質を確認したい時
+
+**ポイント**:
+- **実行環境**: Mac（M1チップ）対応
+- **LoRA適用方法**: プロンプトに `<lora:モデル名:強度>` を記述（強度は0.0〜1.0）
+- **推奨設定**:
+  - Sampling method: DPM++ 2M Karras
+  - Sampling steps: 20〜30
+  - CFG Scale: 7〜9
+  - 解像度: 512x512（学習時と同じサイズ推奨）
+- **スタイル再現**: `nasumiso_style` タグを含めることで画風の再現性が向上
+- **起動時間**: 初回起動は数分かかる場合あり（モデル読み込み）
+
+**実装日**: 2025-11-02（WebUI設置）
+
+---
+
+## 未実装機能
+
+### 7. データセット整形（organize_dataset.py）
+
+**目的**: kohya_ss形式でデータセットを整形する
+
+**ステータス**: 未実装（現在は手動でGoogle Driveにアップロード）
 
 ---
 
@@ -158,13 +239,15 @@ python scripts/generate_jp_tags.py \
 - [x] 自動タグ付け（auto_caption.py）
 - [x] 共通タグ一括追加（add_common_tag.py）
 - [x] 日本語タグ生成（generate_jp_tags.py）
-- [ ] データセット整形（organize_dataset.py）
+- [ ] データセット整形（organize_dataset.py）※現在は手動でGoogle Driveアップロード
 
 ### LoRA学習
-- [ ] Google Colab学習ノートブック
-- [ ] 学習パラメータ設定テンプレート
+- [x] Google Colab学習ノートブック（train_lora_nasutomo.ipynb）
+- [x] 学習パラメータ設定（ノートブック内に実装）
 
 ### 画像生成
+- [x] StableDiffusion WebUI設置（`~/stable-diffusion-webui/`）
+- [x] LoRA適用による画像生成
 - [ ] プロンプトテンプレート
 - [ ] 生成ログ管理
 
@@ -172,7 +255,7 @@ python scripts/generate_jp_tags.py \
 
 ## 典型的な使い方の流れ
 
-### ステップ1〜4: 画像準備からデータセット作成まで
+### ステップ1〜3: 画像準備からタグ付けまで（Mac環境）
 
 ```bash
 # 仮想環境を有効化
@@ -199,18 +282,41 @@ python scripts/add_common_tag.py \
 # 4. 日本語タグ生成（確認用）
 python scripts/generate_jp_tags.py \
   --input projects/nasumiso_v1/3_tagged
+```
 
-# 5. データセット整形（未実装）
-# python scripts/organize_dataset.py --project nasumiso_v1
+### ステップ4: Google Driveアップロード
+
+```bash
+# 3_taggedフォルダの画像と.txtファイルを
+# Google Driveの /MyDrive/NasuTomo/datasets/ にアップロード
+# （手動またはGoogle Drive デスクトップアプリ使用）
 ```
 
 ### ステップ5: LoRA学習（Google Colab）
 
-→ 未実装（将来的に`notebooks/train_lora_sd15.ipynb`で実行予定）
+1. Google Colabで `notebooks/train_lora_nasutomo.ipynb` を開く
+2. セルを上から順に実行
+3. 学習完了後、`/MyDrive/NasuTomo/output/` から.safetensorsファイルをダウンロード
+4. `projects/nasumiso_v1/lora_models/` に保存
 
-### ステップ6: 画像生成（Windows環境）
+### ステップ6: 画像生成（Mac環境）
 
-→ AUTOMATIC1111 WebUIで手動実行
+```bash
+# 1. 学習済みLoRAモデルを配置
+# projects/nasumiso_v1/lora_models/nasumiso_v1.safetensors を
+# ~/stable-diffusion-webui/models/Lora/ にコピー
+
+# 2. WebUIを起動
+cd ~/stable-diffusion-webui
+./webui.sh
+
+# 3. ブラウザで http://127.0.0.1:7860/ にアクセス
+
+# 4. プロンプトに以下を含める:
+#    <lora:nasumiso_v1:1.0>, nasumiso_style, [その他のプロンプト]
+
+# 5. 生成画像は ~/stable-diffusion-webui/outputs/ に保存される
+```
 
 ---
 
@@ -222,6 +328,8 @@ python scripts/generate_jp_tags.py \
 | 2025-10-19 | auto_caption.py | 自動タグ付け機能を実装 |
 | 2025-10-19 | add_common_tag.py | 共通タグ一括追加機能を実装 |
 | 2025-10-19 | generate_jp_tags.py | 日本語タグ生成機能を実装 |
+| 2025-11-02 | train_lora_nasutomo.ipynb | Google Colab用LoRA学習ノートブック作成 |
+| 2025-11-02 | StableDiffusion WebUI | Mac環境にWebUI設置、画像生成環境構築 |
 
 ---
 
