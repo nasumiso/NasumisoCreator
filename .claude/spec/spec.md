@@ -344,6 +344,64 @@ cd ~/stable-diffusion-webui
 | 2025-10-19 | generate_jp_tags.py | 日本語タグ生成機能を実装 |
 | 2025-11-02 | train_lora_nasutomo.ipynb | Google Colab用LoRA学習ノートブック作成 |
 | 2025-11-02 | StableDiffusion WebUI | Mac環境にWebUI設置、画像生成環境構築 |
+| 2025-11-03 | Windows環境セットアップ | Windows向けセットアップスクリプトとドキュメント追加 |
+
+---
+
+## Windows環境向けセットアップ
+
+### 7. Windows環境向けセットアップ（setup_windows.bat / ドキュメント）
+
+**目的**: なすみそさんがWindows環境でStable Diffusion WebUIをセットアップし、画像生成を実行できるようにする
+
+**できること**:
+- Python/Gitのインストール確認とエラーメッセージ表示
+- Stable Diffusion WebUIの自動クローン
+- デスクトップショートカットの自動作成
+- 詳細なセットアップ手順とトラブルシューティング
+- プロンプトの書き方ガイド（初心者向け）
+
+**セットアップスクリプト**:
+- `setup/setup_windows.bat`: WebUIの自動セットアップ
+- `setup/create_shortcut.bat`: デスクトップショートカット作成
+
+**ドキュメント**:
+- `docs/setup_windows.md`: セットアップ手順（前提条件、インストール、トラブルシューティング）
+- `docs/quickstart_nasumiso.md`: なすみそさん向けクイックスタート（WebUIの使い方、プロンプトの書き方、FAQ）
+- `docs/model_download.md`: モデルファイルのダウンロードと配置方法
+
+**基本的な使い方**:
+
+1. **セットアップスクリプト実行** (Windows):
+   - `setup/setup_windows.bat` をダブルクリック
+   - Python/Gitがインストールされているか自動チェック
+   - Stable Diffusion WebUIを `%USERPROFILE%\Documents\stable-diffusion-webui\` に自動クローン
+
+2. **モデルファイル配置**:
+   - Google Driveから `anything-v5.safetensors` と `nasumiso_v1.safetensors` をダウンロード
+   - それぞれ指定フォルダに配置（ドキュメント参照）
+
+3. **WebUI起動**:
+   - `webui-user.bat` をダブルクリック（またはデスクトップショートカット使用）
+   - ブラウザで `http://127.0.0.1:7860/` にアクセス
+
+4. **画像生成**:
+   - プロンプト例: `<lora:nasumiso_v1:1.0>, nasumiso_style, 1girl, solo, smile`
+   - 詳細は `docs/quickstart_nasumiso.md` 参照
+
+**いつ使う？**:
+- なすみそさんがWindows環境で初めてセットアップする時
+- 環境を再構築する時
+- トラブル時の参照ドキュメントとして
+
+**ポイント**:
+- **LoRAとベースモデルの関係**: LoRAモデルは単体では動作せず、必ずベースモデル（anything-v5.safetensors）が必要
+- **学習時と推論時のベースモデル統一**: 学習時に使用したベースモデルと同じものを推論時も使用することで、画風の再現度が向上
+- **Git管理方針**: スクリプトとドキュメントのみGit管理、Python本体やWebUI本体は管理対象外
+- **モデルファイル共有**: 大容量のためGit管理せず、Google Drive等で別途共有
+- **イラストレーター向け設計**: 技術用語を避け、わかりやすい表現と豊富なFAQを提供
+
+**実装日**: 2025-11-03
 
 ---
 

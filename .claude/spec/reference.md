@@ -214,6 +214,133 @@ cd ~/stable-diffusion-webui
 
 ---
 
+## Windows環境向けセットアップ
+
+### setup_windows.bat
+
+**機能**: Windows環境でのStable Diffusion WebUI自動セットアップ
+
+**技術仕様**:
+- **ファイル形式**: Windows Batch Script (.bat)
+- **文字エンコーディング**: UTF-8 (chcp 65001)
+- **実行権限**: 管理者権限不要（通常ユーザー権限で実行可能）
+
+**処理フロー**:
+1. Python/Gitのインストール確認（`python --version`, `git --version`）
+2. インストール先の確認と既存フォルダの削除確認
+3. Stable Diffusion WebUIのクローン（`git clone https://github.com/AUTOMATIC1111/stable-diffusion-webui.git`）
+4. 次のステップの案内表示
+
+**インストール先**:
+```
+%USERPROFILE%\Documents\stable-diffusion-webui\
+```
+
+**前提条件**:
+- Python 3.10.11以上（PATH設定必須）
+- Git for Windows（PATH設定必須）
+
+**終了コード**:
+- 0: 正常終了
+- 1: Python/Git未インストール、ダウンロード失敗
+
+---
+
+### create_shortcut.bat
+
+**機能**: デスクトップにWebUI起動ショートカットを作成
+
+**技術仕様**:
+- **ショートカット作成**: PowerShell経由でWScript.Shellを使用
+- **ショートカット名**: `Stable Diffusion WebUI.lnk`
+- **配置先**: `%USERPROFILE%\Desktop\`
+- **ターゲット**: `%USERPROFILE%\Documents\stable-diffusion-webui\webui-user.bat`
+
+**PowerShellコマンド**:
+```powershell
+$ws = New-Object -ComObject WScript.Shell
+$s = $ws.CreateShortcut('%SHORTCUT%')
+$s.TargetPath = '%INSTALL_DIR%\webui-user.bat'
+$s.WorkingDirectory = '%INSTALL_DIR%'
+$s.Save()
+```
+
+---
+
+### ドキュメント構成
+
+**setup_windows.md** (5.8KB):
+- 前提条件（Python 3.10.11、Git for Windows）
+- インストール手順（スクリーンショット記載箇所明示）
+- トラブルシューティング（よくあるエラーと対処法）
+
+**quickstart_nasumiso.md** (10.3KB):
+- WebUIの起動方法と画面説明
+- プロンプトの書き方（基本〜応用、例文豊富）
+- 推奨パラメータ設定
+- よくある質問（FAQ）
+
+**model_download.md** (4.7KB):
+- ベースモデル（anything-v5.safetensors, 約4.27GB）の入手方法
+- LoRAモデル（nasumiso_v1.safetensors, 約150MB）の入手方法
+- ファイル配置場所の詳細説明
+
+**設計思想**:
+- イラストレーター向けに技術用語を極力避ける
+- スクリーンショット記載箇所を明示（後で画像追加可能）
+- トラブルシューティングを充実
+
+---
+
+### .gitignore更新内容
+
+**追加された除外パターン**:
+```gitignore
+# Python仮想環境
+*.pyo
+env/
+dist/
+build/
+
+# システムファイル（OS固有）
+desktop.ini
+*.swp
+*.swo
+*~
+
+# 外部ツール（stable-diffusion-webui は別管理）
+stable-diffusion-webui/
+```
+
+**設計方針**:
+- セットアップスクリプト、ドキュメントのみGit管理
+- Python本体、WebUI本体、モデルファイルは管理対象外
+- OS固有ファイル（Windows/Mac両対応）を除外
+
+---
+
+### 重要な技術的気づき
+
+**LoRAとベースモデルの関係**:
+- LoRAモデルは差分データのため、単体では動作不可
+- 学習時のベースモデル（anything-v5.safetensors）と推論時のベースモデルを統一する必要あり
+- 異なるベースモデルを使用すると画風の再現度が低下
+
+**ベースモデルの確認方法**:
+```bash
+# Mac環境
+ls ~/stable-diffusion-webui/models/Stable-diffusion/
+
+# Windows環境
+dir %USERPROFILE%\Documents\stable-diffusion-webui\models\Stable-diffusion\
+```
+
+**モデルファイル配置**:
+- ベースモデル: `models/Stable-diffusion/anything-v5.safetensors`
+- LoRAモデル: `models/Lora/nasumiso_v1.safetensors`
+
+---
+
 ## ドキュメント管理
 
 このファイルはREQ完了時にClaude Codeが更新します。技術仕様を簡潔に記録してください。
