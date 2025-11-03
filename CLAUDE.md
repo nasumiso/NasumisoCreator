@@ -8,16 +8,16 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 - **開発者**: こすうけ（MacBook Air M1使用）
 - **技術スタック**: Python, Google Colab, kohya_ss, Stable Diffusion, AUTOMATIC1111 WebUI
-- **現在のステータス**: 画像前処理・自動タグ付けスクリプト実装済み
+- **現在のステータス**: フェーズ1（MVP）完了 - エンドツーエンドのLoRA学習・画像生成フロー確立済み
 
 ### 7ステップのワークフロー
 
 1. **画像収集**: なすみそから画像を受領 → `projects/nasumiso_v1/1_raw_images/`
 2. **画像処理**: リネーム＋512x512リサイズ → `projects/nasumiso_v1/2_processed/`
 3. **自動タグ付け**: WD14 Taggerで`.txt`生成 → `projects/nasumiso_v1/3_tagged/`
-4. **データセット整形**: 画像+タグをペアで配置 → `projects/nasumiso_v1/4_dataset/`
-5. **学習実行**: Google ColabでLoRA学習 → `projects/nasumiso_v1/lora_models/`
-6. **画像生成**: Windows環境のWebUIでテスト生成 → `outputs/test_generations/`
+4. **Google Driveアップロード**: タグ付き画像をGoogle Driveにアップロード（Colab学習用）
+5. **学習実行**: Google Colabで`train_lora_nasutomo.ipynb`を使用してLoRA学習 → Google Drive内に保存、ローカルの`projects/nasumiso_v1/lora_models/`にダウンロード
+6. **画像生成**: Mac環境のStableDiffusion WebUI (`~/stable-diffusion-webui/`) でテスト生成 → `~/stable-diffusion-webui/outputs/`
 7. **品質チェックと再学習**: フィードバックに基づき改善
 
 ## 開発ワークフロー（6ステップの実装サイクル）
@@ -62,9 +62,9 @@ NasumisoCreator/
 │   └── nasumiso_v1/
 │       ├── 1_raw_images/          # 元画像
 │       ├── 2_processed/           # リサイズ・リネーム済み
-│       ├── 3_tagged/              # タグ付き画像（.txtペア）
-│       ├── 4_dataset/             # Colab学習用データセット
-│       └── lora_models/           # 学習済みLoRAモデル
+│       ├── 3_tagged/              # タグ付き画像（.txtペア）→Google Driveにアップロード
+│       ├── 4_dataset/             # （未使用: 当初計画のデータセット整形用）
+│       └── lora_models/           # 学習済みLoRAモデル（Google Driveからダウンロード）
 │
 ├── scripts/                        # Python前処理スクリプト
 │   ├── prepare_images.py          # リネーム・リサイズ（実装済み）
@@ -74,12 +74,11 @@ NasumisoCreator/
 │   └── organize_dataset.py        # データセット整形（未実装）
 │
 ├── notebooks/                      # Colab学習ノートブック
-│   └── train_lora_sd15.ipynb      # SD 1.5用LoRA学習（未実装）
+│   └── train_lora_nasutomo.ipynb  # Google Colab用LoRA学習（実装済み）
 │
-└── outputs/                        # 生成結果（Windows環境）
-    ├── test_generations/           # テスト生成画像
-    ├── prompts/                    # プロンプトテンプレート
-    └── generation_logs/            # 生成パラメータログ
+└── docs/                           # ドキュメント
+
+**注**: 画像生成環境は別ディレクトリ `~/stable-diffusion-webui/` に配置（Mac環境）
 ```
 
 ## セットアップ
@@ -107,7 +106,7 @@ deactivate
 
 ## コマンド
 
-### 画像前処理ワークフロー
+### 画像前処理ワークフロー（Mac環境）
 
 ```bash
 # 仮想環境を有効化してから実行
@@ -135,8 +134,28 @@ python scripts/add_common_tag.py \
 python scripts/generate_jp_tags.py \
   --input projects/nasumiso_v1/3_tagged
 
-# 5. データセット整形（未実装）
-python scripts/organize_dataset.py --project nasumiso_v1
+# 5. Google Driveにアップロード（手動）
+# projects/nasumiso_v1/3_tagged/ の内容を
+# Google Drive /MyDrive/NasuTomo/datasets/ にアップロード
+```
+
+### LoRA学習（Google Colab）
+
+1. Google Colabで `notebooks/train_lora_nasutomo.ipynb` を開く
+2. セルを上から順に実行
+3. 学習完了後、Google Drive `/MyDrive/NasuTomo/output/` から.safetensorsファイルをダウンロード
+4. `projects/nasumiso_v1/lora_models/` に保存
+
+### 画像生成（Mac環境）
+
+```bash
+# WebUIを起動
+cd ~/stable-diffusion-webui
+./webui.sh
+
+# ブラウザで http://127.0.0.1:7860/ にアクセス
+# プロンプト: <lora:nasumiso_v1:1.0>, nasumiso_style, [その他のプロンプト]
+# 生成画像は ~/stable-diffusion-webui/outputs/ に保存される
 ```
 
 ## 技術的なアーキテクチャ
