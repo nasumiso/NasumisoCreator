@@ -154,8 +154,10 @@ python scripts/generate_jp_tags.py \
    - kohya_ssセットアップ
    - Anything V5モデルのダウンロード（初回のみ）
    - LoRA学習実行
-4. 学習完了後、Google Drive `/MyDrive/NasuTomo/output/` から学習済みモデル（.safetensors）をダウンロード
-5. ローカルの `projects/nasumiso_v1/lora_models/` に保存
+4. **学習完了後のモデル配置**:
+   - Google Drive `/MyDrive/NasuTomo/output/` から学習済みモデル（.safetensors）をダウンロード
+   - ローカルの `projects/nasumiso_v1/lora_models/` に保存（バックアップ用）
+   - `~/stable-diffusion-webui/models/Lora/` にコピー（画像生成用）
 
 **いつ使う？**:
 - タグ付けと共通タグ追加が完了した後
@@ -296,26 +298,38 @@ python scripts/generate_jp_tags.py \
 
 1. Google Colabで `notebooks/train_lora_nasutomo.ipynb` を開く
 2. セルを上から順に実行
-3. 学習完了後、`/MyDrive/NasuTomo/output/` から.safetensorsファイルをダウンロード
-4. `projects/nasumiso_v1/lora_models/` に保存
+3. 学習完了（約20〜30分）
 
-### ステップ6: 画像生成（Mac環境）
+### ステップ6: モデルダウンロードと配置
 
 ```bash
-# 1. 学習済みLoRAモデルを配置
-# projects/nasumiso_v1/lora_models/nasumiso_v1.safetensors を
-# ~/stable-diffusion-webui/models/Lora/ にコピー
+# 1. Google Driveから学習済みモデルをダウンロード
+# /MyDrive/NasuTomo/output/nasumiso_v1.safetensors を
+# ローカルの projects/nasumiso_v1/lora_models/ に保存
 
-# 2. WebUIを起動
+# 2. 画像生成用にコピー
+cp projects/nasumiso_v1/lora_models/nasumiso_v1.safetensors \
+   ~/stable-diffusion-webui/models/Lora/
+```
+
+### ステップ7: 画像生成（Mac環境）
+
+```bash
+# 1. WebUIを起動
 cd ~/stable-diffusion-webui
 ./webui.sh
 
-# 3. ブラウザで http://127.0.0.1:7860/ にアクセス
+# 2. ブラウザで http://127.0.0.1:7860/ にアクセス
 
-# 4. プロンプトに以下を含める:
+# 3. プロンプトに以下を含める:
 #    <lora:nasumiso_v1:1.0>, nasumiso_style, [その他のプロンプト]
 
-# 5. 生成画像は ~/stable-diffusion-webui/outputs/ に保存される
+# 4. 生成画像は ~/stable-diffusion-webui/outputs/ に保存される
+```
+
+### ステップ8: 品質チェックと再学習
+
+生成画像を確認し、必要に応じてパラメータ調整や追加学習を実施
 ```
 
 ---
