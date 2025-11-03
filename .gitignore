@@ -13,17 +13,28 @@ projects/*/lora_models/*.safetensors
 outputs/test_generations/**
 outputs/generation_logs/**
 
-# Python
+# Python仮想環境
 __pycache__/
 *.pyc
+*.pyo
 .venv/
 venv/
+env/
 *.egg-info/
+dist/
+build/
 
-# システムファイル
+# システムファイル（OS固有）
 .DS_Store
 Thumbs.db
+desktop.ini
+*.swp
+*.swo
+*~
 
 # 一時ファイル
 *.tmp
 *.log
+
+# 外部ツール（stable-diffusion-webui は別管理）
+stable-diffusion-webui/
