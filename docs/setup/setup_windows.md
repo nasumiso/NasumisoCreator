@@ -46,6 +46,7 @@ git --version
 ```
 `git version 2.x.x` のように表示されればOK
 
+
 ---
 
 ## セットアップ手順
@@ -131,6 +132,14 @@ C:\Users\[ユーザー名]\Documents\stable-diffusion-webui\models\Lora\
 ---
 
 ## トラブルシューティング
+### コマンドプロンプト（黒い画面）の開き方
+
+このガイドでは確認のためにコマンドを実行します。次のいずれかの方法でコマンドプロンプト（またはPowerShell）を開いてください。
+
+- 方法A（いちばん簡単）: Windowsキーを押して「cmd」と入力 → Enter
+- 方法B: Windowsキー + R → 「cmd」と入力 → Enter
+- 方法C（特定のフォルダで開く）: エクスプローラーで目的のフォルダを開き、アドレスバーに「cmd」と入力 → Enter
+- 方法D（管理者として）: スタートメニューで「コマンドプロンプト」を右クリック →「管理者として実行」
 
 ### Python/Gitが見つからないエラー
 
@@ -140,6 +149,27 @@ C:\Users\[ユーザー名]\Documents\stable-diffusion-webui\models\Lora\
 1. Python/Gitを再インストール
 2. インストール時に「Add to PATH」にチェックを入れたか確認
 3. PCを再起動
+
+### `python` を実行すると Microsoft Store が開く
+
+- **症状**: コマンドで `python` を実行すると、ブラウザやMicrosoft StoreのPythonページが起動する
+- **原因**:
+  - `PATH` の順序で `WindowsApps` が実際のPythonパスより上にあるため、ストアのプレースホルダーが優先される
+
+**対処法: PATHの順序を入れ替える**
+1. システムのプロパティ → 詳細設定 → 環境変数
+2. 「ユーザー環境変数」または「システム環境変数」の `Path` を編集
+3. 次の実際のPythonのパスを、`WindowsApps` より上に移動する（存在する実パスに置き換え）
+   - `C:\Users\[ユーザー名]\AppData\Local\Programs\Python\Python310\`
+   - `C:\Users\[ユーザー名]\AppData\Local\Programs\Python\Python310\Scripts\`
+   - 参考: `C:\Users\[ユーザー名]\AppData\Local\Microsoft\WindowsApps\` はできるだけ下に配置
+4. ターミナルを開き直す（必要ならサインアウト/再起動）
+
+**確認コマンド**
+where python
+python --version- 例: `C:\Users\[ユーザー名]\AppData\Local\Programs\Python\Python310\python.exe` が最上位に出ればOK
+
+- 補足: インストール時に「Add Python to PATH」にチェックを入れると、この問題を避けやすいです。
 
 ### ダウンロードが失敗する
 
