@@ -1,7 +1,7 @@
 @echo off
 echo ====================================
 echo Stable Diffusion WebUI セットアップ
-echo なすみそクリエイター
+echo なすみそクリエイター(Windows)
 echo ====================================
 echo.
 
