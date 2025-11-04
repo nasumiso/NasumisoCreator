@@ -52,7 +52,8 @@ git --version
 
 ### Step 1: セットアップファイルを入手
 
-こすうけさんから以下のファイルを受け取ってください：
+このプロジェクトの[GitHubURL](https://github.com/nasumiso/NasumisoCreator/tree/main/docs/setup)
+もしくは、こすうけさんから直接以下のファイルを受け取ってください：
 
 - **setup_windows.bat** - 自動セットアップスクリプト
 - **create_shortcut.bat** - デスクトップショートカット作成用（オプション）
