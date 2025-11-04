@@ -1,41 +1,40 @@
-﻿@echo off
-chcp 65001 >nul
+@echo off
 echo ====================================
-echo デスクトップショートカット作成
-echo なすみそクリエイター
+echo ãã¹ã¯ãããã·ã§ã¼ãã«ããä½æ
+echo ãªã¹ã¿ããã¯ãªã¨ã¤ã¿ã¼
 echo ====================================
 echo.
 
 set "INSTALL_DIR=%USERPROFILE%\Documents\stable-diffusion-webui"
 set "SHORTCUT=%USERPROFILE%\Desktop\Stable Diffusion WebUI.lnk"
 
-REM インストール先の確認
+REM ã¤ã³ã¹ãã¼ã«åã®ç¢ºèª
 if not exist "%INSTALL_DIR%\webui-user.bat" (
-    echo [エラー] Stable Diffusion WebUIが見つかりません
+    echo [ã¨ã©ã¼] Stable Diffusion WebUIãè¦ã¤ããã¾ãã
     echo.
-    echo 先に setup_windows.bat を実行してセットアップを完了してください。
+    echo åã« setup_windows.bat ãå®è¡ãã¦ã»ããã¢ãããå®äºãã¦ãã ããã
     echo.
     pause
     exit /b 1
 )
 
-REM ショートカット作成
-echo デスクトップにショートカットを作成しています...
+REM ã·ã§ã¼ãã«ããä½æ
+echo ãã¹ã¯ãããã«ã·ã§ã¼ãã«ãããä½æãã¦ãã¾ã...
 powershell -Command "$ws = New-Object -ComObject WScript.Shell; $s = $ws.CreateShortcut('%SHORTCUT%'); $s.TargetPath = '%INSTALL_DIR%\webui-user.bat'; $s.WorkingDirectory = '%INSTALL_DIR%'; $s.IconLocation = '%INSTALL_DIR%\webui-user.bat'; $s.Save()"
 
 if errorlevel 1 (
     echo.
-    echo [エラー] ショートカットの作成に失敗しました
+    echo [ã¨ã©ã¼] ã·ã§ã¼ãã«ããã®ä½æã«å¤±æãã¾ãã
     pause
     exit /b 1
 )
 
 echo.
-echo [OK] デスクトップにショートカットを作成しました
+echo [OK] ãã¹ã¯ãããã«ã·ã§ã¼ãã«ãããä½æãã¾ãã
 echo.
-echo ショートカット名: Stable Diffusion WebUI
+echo ã·ã§ã¼ãã«ããåï¼ Stable Diffusion WebUI
 echo.
-echo このショートカットをダブルクリックすることで、
-echo Stable Diffusion WebUIを起動できます。
+echo ãã®ã·ã§ã¼ãã«ãããããã«ã¯ãªãã¯ãããã¨ã§ã
+echo Stable Diffusion WebUIãèµ·åã§ãã¾ãã
 echo.
 pause

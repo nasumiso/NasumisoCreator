@@ -1,127 +1,126 @@
-﻿@echo off
-chcp 65001 >nul
+@echo off
 echo ====================================
-echo Stable Diffusion WebUI セットアップ
-echo なすみそクリエイター
+echo Stable Diffusion WebUI ã»ããã¢ãã
+echo ãªã¹ã¿ããã¯ãªã¨ã¤ã¿ã¼
 echo ====================================
 echo.
 
-REM 前提条件チェック
-echo [1/4] 前提条件をチェックしています...
+REM åæ¡ä»¶ãã§ãã¯
+echo [1/4] åæ¡ä»¶ãã§ãã¯ãã¦ãã¾ã...
 echo.
 
-REM Pythonのチェック
+REM Pythonã®ãã§ãã¯
 python --version >nul 2>&1
 if errorlevel 1 (
-    echo [エラー] Pythonがインストールされていません
+    echo [ã¨ã©ã¼] Pythonãã¤ã³ã¹ãã¼ã«ããã¦ãã¾ãã
     echo.
-    echo 以下のURLからPython 3.10.11をダウンロードしてインストールしてください：
+    echo ä»¥ä¸ã®URLããPython 3.10.11ãã¦ã³ã­ã¼ããã¦ã¤ã³ã¹ãã¼ã«ãã¦ãã ããï¼
     echo https://www.python.org/downloads/release/python-31011/
     echo.
-    echo インストール時の注意点：
-    echo - 必ず「Add Python to PATH」にチェックを入れてください
-    echo - インストール後、PCを再起動してください
+    echo ã¤ã³ã¹ãã¼ã«æã®æ³¨æç¹ï¼
+    echo - å¿ãããAdd Python to PATHãã«ãã§ãã¯ãå¥ãã¦ãã ãã
+    echo - ã¤ã³ã¹ãã¼ã«å¾ãPCãåèµ·åãã¦ãã ãã
     echo.
     pause
     exit /b 1
 )
 
-echo [OK] Python が見つかりました
+echo [OK] Python ãè¦ã¤ããã¾ãã
 python --version
 echo.
 
-REM Gitのチェック
+REM Gitã®ãã§ãã¯
 git --version >nul 2>&1
 if errorlevel 1 (
-    echo [エラー] Gitがインストールされていません
+    echo [ã¨ã©ã¼] Gitãã¤ã³ã¹ãã¼ã«ããã¦ãã¾ãã
     echo.
-    echo 以下のURLからGit for Windowsをダウンロードしてインストールしてください：
+    echo ä»¥ä¸ã®URLããGit for Windowsãã¦ã³ã­ã¼ããã¦ã¤ã³ã¹ãã¼ã«ãã¦ãã ããï¼
     echo https://git-scm.com/download/win
     echo.
-    echo インストール後、PCを再起動してください
+    echo ã¤ã³ã¹ãã¼ã«å¾ãPCãåèµ·åãã¦ãã ãã
     echo.
     pause
     exit /b 1
 )
 
-echo [OK] Git が見つかりました
+echo [OK] Git ãè¦ã¤ããã¾ãã
 git --version
 echo.
 
-REM インストール先の確認
+REM ã¤ã³ã¹ãã¼ã«åã®ç¢ºèª
 set "INSTALL_DIR=%USERPROFILE%\Documents\stable-diffusion-webui"
-echo [2/4] インストール先を確認しています...
-echo インストール先: %INSTALL_DIR%
+echo [2/4] ã¤ã³ã¹ãã¼ã«åãç¢ºèªãã¦ãã¾ã...
+echo ã¤ã³ã¹ãã¼ã«åï¼ %INSTALL_DIR%
 echo.
 
 if exist "%INSTALL_DIR%" (
-    echo [警告] インストール先に既にフォルダが存在します
-    echo 既存のフォルダを削除して新規インストールしますか？
+    echo [è­¦å] ã¤ã³ã¹ãã¼ã«åã«æ¢ã«ãã©ã«ããå­å¨ãã¾ã
+    echo æ¢å­ã®ãã©ã«ããåé¤ãã¦æ°è¦ã¤ã³ã¹ãã¼ã«ãã¾ããï¼
     echo.
-    echo Y: 削除して新規インストール
-    echo N: キャンセル
+    echo Yï¼ åé¤ãã¦æ°è¦ã¤ã³ã¹ãã¼ã«
+    echo Nï¼ ã­ã£ã³ã»ã«
     echo.
-    choice /C YN /N /M "選択してください (Y/N): "
+    choice /C YN /N /M "é¸æãã¦ãã ãã (Y/N): "
     if errorlevel 2 (
         echo.
-        echo キャンセルしました
+        echo ã­ã£ã³ã»ã«ãã¾ãã
         pause
         exit /b 0
     )
     echo.
-    echo 既存のフォルダを削除しています...
+    echo æ¢å­ã®ãã©ã«ããåé¤ãã¦ãã¾ã...
     rmdir /s /q "%INSTALL_DIR%"
 )
 
-REM WebUIのクローン
-echo [3/4] Stable Diffusion WebUIをダウンロードしています...
-echo （数分かかる場合があります）
+REM WebUIã®ã¯ã­ã¼ã³
+echo [3/4] Stable Diffusion WebUIãã¦ã³ã­ã¼ããã¦ãã¾ã...
+echo ï¼æ°åããããå ´åãããã¾ãï¼
 echo.
 
 git clone https://github.com/AUTOMATIC1111/stable-diffusion-webui.git "%INSTALL_DIR%"
 if errorlevel 1 (
     echo.
-    echo [エラー] ダウンロードに失敗しました
-    echo インターネット接続を確認してください
+    echo [ã¨ã©ã¼] ã¦ã³ã­ã¼ãã«å¤±æãã¾ãã
+    echo ã¤ã³ã¿ã¼ãããæ¥ç¶ãç¢ºèªãã¦ãã ãã
     pause
     exit /b 1
 )
 
 echo.
-echo [OK] ダウンロードが完了しました
+echo [OK] ã¦ã³ã­ã¼ããå®äºãã¾ãã
 echo.
 
-REM 完了メッセージ
-echo [4/4] セットアップが完了しました！
+REM å®äºã¡ãã»ã¼ã¸
+echo [4/4] ã»ããã¢ãããå®äºãã¾ããï¼
 echo.
 echo ============================================================
-echo 次のステップ
+echo æ¬¡ã®ã¹ããã
 echo ============================================================
 echo.
-echo 1. モデルファイルを以下のフォルダに配置してください：
+echo 1. ã¢ãã«ãã¡ã¤ã«ãä»¥ä¸ã®ãã©ã«ãã«é ç½®ãã¦ãã ããï¼
 echo.
-echo    【ベースモデル】
+echo    ãã¼ã¹ã¢ãã«ã
 echo    %INSTALL_DIR%\models\Stable-diffusion\
-echo    → anything-v5.safetensors を配置
+echo    â anything-v5.safetensors ãé ç½®
 echo.
-echo    【LoRAモデル】
+echo    ãLoRAã¢ãã«ã
 echo    %INSTALL_DIR%\models\Lora\
-echo    → nasumiso_v1.safetensors を配置
+echo    â nasumiso_v1.safetensors ãé ç½®
 echo.
-echo 2. モデルファイルの配置が完了したら、以下のファイルを
-echo    ダブルクリックして起動してください：
+echo 2. ã¢ãã«ãã¡ã¤ã«ã®é ç½®ãå®äºãããã
+echo    ãã¦ã³ã­ãªãã¯ãã¦èµ·åãã¦ãã ããï¼
 echo.
 echo    %INSTALL_DIR%\webui-user.bat
 echo.
-echo    初回起動時は依存関係のインストールに10〜20分かかります。
+echo    åååèµ·åæã¯ä¾å­é¢ä¿ã®ã¤ã³ã¹ãã¼ã«ã«10ï½20åããããã¾ãã
 echo.
-echo 3. ブラウザで http://127.0.0.1:7860/ にアクセスします。
+echo 3. ãã©ã¦ã¶ã§ http://127.0.0.1:7860/ ã«ã¢ã¯ã»ã¹ãã¾ãã
 echo.
 echo ============================================================
 echo.
-echo デスクトップにショートカットを作成する場合は、
-echo create_shortcut.bat を実行してください。
+echo ãã¹ã¯ãããã«ã·ã§ã¼ãã«ããä½æããå ´åã¯ã
+echo create_shortcut.bat ãå®è¡ãã¦ãã ããã
 echo.
-echo 詳しい手順は docs\setup_windows.md を参照してください。
+echo è©³ããæé ã¯ docs\setup_windows.md ãåç§ãã¦ãã ããã
 echo.
 pause
