@@ -1,127 +1,126 @@
-ï»¿@echo off
-chcp 65001 >nul
+@echo off
 echo ====================================
-echo Stable Diffusion WebUI ã‚»ãƒƒãƒˆã‚¢ãƒƒãƒ—
-echo ãªã™ã¿ãã‚¯ãƒªã‚¨ã‚¤ã‚¿ãƒ¼
+echo Stable Diffusion WebUI ƒZƒbƒgƒAƒbƒv
+echo ‚È‚·‚Ý‚»ƒNƒŠƒGƒCƒ^[
 echo ====================================
 echo.
 
-REM å‰ææ¡ä»¶ãƒã‚§ãƒƒã‚¯
-echo [1/4] å‰ææ¡ä»¶ã‚’ãƒã‚§ãƒƒã‚¯ã—ã¦ã„ã¾ã™...
+REM ‘O’ñðŒƒ`ƒFƒbƒN
+echo [1/4] ‘O’ñðŒ‚ðƒ`ƒFƒbƒN‚µ‚Ä‚¢‚Ü‚·...
 echo.
 
-REM Pythonã®ãƒã‚§ãƒƒã‚¯
+REM Python‚Ìƒ`ƒFƒbƒN
 python --version >nul 2>&1
 if errorlevel 1 (
-    echo [ã‚¨ãƒ©ãƒ¼] PythonãŒã‚¤ãƒ³ã‚¹ãƒˆãƒ¼ãƒ«ã•ã‚Œã¦ã„ã¾ã›ã‚“
+    echo [ƒGƒ‰[] Python‚ªƒCƒ“ƒXƒg[ƒ‹‚³‚ê‚Ä‚¢‚Ü‚¹‚ñ
     echo.
-    echo ä»¥ä¸‹ã®URLã‹ã‚‰Python 3.10.11ã‚’ãƒ€ã‚¦ãƒ³ãƒ­ãƒ¼ãƒ‰ã—ã¦ã‚¤ãƒ³ã‚¹ãƒˆãƒ¼ãƒ«ã—ã¦ãã ã•ã„ï¼š
+    echo ˆÈ‰º‚ÌURL‚©‚çPython 3.10.11‚ðƒ_ƒEƒ“ƒ[ƒh‚µ‚ÄƒCƒ“ƒXƒg[ƒ‹‚µ‚Ä‚­‚¾‚³‚¢F
     echo https://www.python.org/downloads/release/python-31011/
     echo.
-    echo ã‚¤ãƒ³ã‚¹ãƒˆãƒ¼ãƒ«æ™‚ã®æ³¨æ„ç‚¹ï¼š
-    echo - å¿…ãšã€ŒAdd Python to PATHã€ã«ãƒã‚§ãƒƒã‚¯ã‚’å…¥ã‚Œã¦ãã ã•ã„
-    echo - ã‚¤ãƒ³ã‚¹ãƒˆãƒ¼ãƒ«å¾Œã€PCã‚’å†èµ·å‹•ã—ã¦ãã ã•ã„
+    echo ƒCƒ“ƒXƒg[ƒ‹Žž‚Ì’ˆÓ“_F
+    echo - •K‚¸uAdd Python to PATHv‚Éƒ`ƒFƒbƒN‚ð“ü‚ê‚Ä‚­‚¾‚³‚¢
+    echo - ƒCƒ“ƒXƒg[ƒ‹ŒãAPC‚ðÄ‹N“®‚µ‚Ä‚­‚¾‚³‚¢
     echo.
     pause
     exit /b 1
 )
 
-echo [OK] Python ãŒè¦‹ã¤ã‹ã‚Šã¾ã—ãŸ
+echo [OK] Python ‚ªŒ©‚Â‚©‚è‚Ü‚µ‚½
 python --version
 echo.
 
-REM Gitã®ãƒã‚§ãƒƒã‚¯
+REM Git‚Ìƒ`ƒFƒbƒN
 git --version >nul 2>&1
 if errorlevel 1 (
-    echo [ã‚¨ãƒ©ãƒ¼] GitãŒã‚¤ãƒ³ã‚¹ãƒˆãƒ¼ãƒ«ã•ã‚Œã¦ã„ã¾ã›ã‚“
+    echo [ƒGƒ‰[] Git‚ªƒCƒ“ƒXƒg[ƒ‹‚³‚ê‚Ä‚¢‚Ü‚¹‚ñ
     echo.
-    echo ä»¥ä¸‹ã®URLã‹ã‚‰Git for Windowsã‚’ãƒ€ã‚¦ãƒ³ãƒ­ãƒ¼ãƒ‰ã—ã¦ã‚¤ãƒ³ã‚¹ãƒˆãƒ¼ãƒ«ã—ã¦ãã ã•ã„ï¼š
+    echo ˆÈ‰º‚ÌURL‚©‚çGit for Windows‚ðƒ_ƒEƒ“ƒ[ƒh‚µ‚ÄƒCƒ“ƒXƒg[ƒ‹‚µ‚Ä‚­‚¾‚³‚¢F
     echo https://git-scm.com/download/win
     echo.
-    echo ã‚¤ãƒ³ã‚¹ãƒˆãƒ¼ãƒ«å¾Œã€PCã‚’å†èµ·å‹•ã—ã¦ãã ã•ã„
+    echo ƒCƒ“ƒXƒg[ƒ‹ŒãAPC‚ðÄ‹N“®‚µ‚Ä‚­‚¾‚³‚¢
     echo.
     pause
     exit /b 1
 )
 
-echo [OK] Git ãŒè¦‹ã¤ã‹ã‚Šã¾ã—ãŸ
+echo [OK] Git ‚ªŒ©‚Â‚©‚è‚Ü‚µ‚½
 git --version
 echo.
 
-REM ã‚¤ãƒ³ã‚¹ãƒˆãƒ¼ãƒ«å…ˆã®ç¢ºèª
+REM ƒCƒ“ƒXƒg[ƒ‹æ‚ÌŠm”F
 set "INSTALL_DIR=%USERPROFILE%\Documents\stable-diffusion-webui"
-echo [2/4] ã‚¤ãƒ³ã‚¹ãƒˆãƒ¼ãƒ«å…ˆã‚’ç¢ºèªã—ã¦ã„ã¾ã™...
-echo ã‚¤ãƒ³ã‚¹ãƒˆãƒ¼ãƒ«å…ˆ: %INSTALL_DIR%
+echo [2/4] ƒCƒ“ƒXƒg[ƒ‹æ‚ðŠm”F‚µ‚Ä‚¢‚Ü‚·...
+echo ƒCƒ“ƒXƒg[ƒ‹æ: %INSTALL_DIR%
 echo.
 
 if exist "%INSTALL_DIR%" (
-    echo [è­¦å‘Š] ã‚¤ãƒ³ã‚¹ãƒˆãƒ¼ãƒ«å…ˆã«æ—¢ã«ãƒ•ã‚©ãƒ«ãƒ€ãŒå­˜åœ¨ã—ã¾ã™
-    echo æ—¢å­˜ã®ãƒ•ã‚©ãƒ«ãƒ€ã‚’å‰Šé™¤ã—ã¦æ–°è¦ã‚¤ãƒ³ã‚¹ãƒˆãƒ¼ãƒ«ã—ã¾ã™ã‹ï¼Ÿ
+    echo [Œx] ƒCƒ“ƒXƒg[ƒ‹æ‚ÉŠù‚ÉƒtƒHƒ‹ƒ_‚ª‘¶Ý‚µ‚Ü‚·
+    echo Šù‘¶‚ÌƒtƒHƒ‹ƒ_‚ðíœ‚µ‚ÄV‹KƒCƒ“ƒXƒg[ƒ‹‚µ‚Ü‚·‚©H
     echo.
-    echo Y: å‰Šé™¤ã—ã¦æ–°è¦ã‚¤ãƒ³ã‚¹ãƒˆãƒ¼ãƒ«
-    echo N: ã‚­ãƒ£ãƒ³ã‚»ãƒ«
+    echo Y: íœ‚µ‚ÄV‹KƒCƒ“ƒXƒg[ƒ‹
+    echo N: ƒLƒƒƒ“ƒZƒ‹
     echo.
-    choice /C YN /N /M "é¸æŠžã—ã¦ãã ã•ã„ (Y/N): "
+    choice /C YN /N /M "‘I‘ð‚µ‚Ä‚­‚¾‚³‚¢ (Y/N): "
     if errorlevel 2 (
         echo.
-        echo ã‚­ãƒ£ãƒ³ã‚»ãƒ«ã—ã¾ã—ãŸ
+        echo ƒLƒƒƒ“ƒZƒ‹‚µ‚Ü‚µ‚½
         pause
         exit /b 0
     )
     echo.
-    echo æ—¢å­˜ã®ãƒ•ã‚©ãƒ«ãƒ€ã‚’å‰Šé™¤ã—ã¦ã„ã¾ã™...
+    echo Šù‘¶‚ÌƒtƒHƒ‹ƒ_‚ðíœ‚µ‚Ä‚¢‚Ü‚·...
     rmdir /s /q "%INSTALL_DIR%"
 )
 
-REM WebUIã®ã‚¯ãƒ­ãƒ¼ãƒ³
-echo [3/4] Stable Diffusion WebUIã‚’ãƒ€ã‚¦ãƒ³ãƒ­ãƒ¼ãƒ‰ã—ã¦ã„ã¾ã™...
-echo ï¼ˆæ•°åˆ†ã‹ã‹ã‚‹å ´åˆãŒã‚ã‚Šã¾ã™ï¼‰
+REM WebUI‚ÌƒNƒ[ƒ“
+echo [3/4] Stable Diffusion WebUI‚ðƒ_ƒEƒ“ƒ[ƒh‚µ‚Ä‚¢‚Ü‚·...
+echo i”•ª‚©‚©‚éê‡‚ª‚ ‚è‚Ü‚·j
 echo.
 
 git clone https://github.com/AUTOMATIC1111/stable-diffusion-webui.git "%INSTALL_DIR%"
 if errorlevel 1 (
     echo.
-    echo [ã‚¨ãƒ©ãƒ¼] ãƒ€ã‚¦ãƒ³ãƒ­ãƒ¼ãƒ‰ã«å¤±æ•—ã—ã¾ã—ãŸ
-    echo ã‚¤ãƒ³ã‚¿ãƒ¼ãƒãƒƒãƒˆæŽ¥ç¶šã‚’ç¢ºèªã—ã¦ãã ã•ã„
+    echo [ƒGƒ‰[] ƒ_ƒEƒ“ƒ[ƒh‚ÉŽ¸”s‚µ‚Ü‚µ‚½
+    echo ƒCƒ“ƒ^[ƒlƒbƒgÚ‘±‚ðŠm”F‚µ‚Ä‚­‚¾‚³‚¢
     pause
     exit /b 1
 )
 
 echo.
-echo [OK] ãƒ€ã‚¦ãƒ³ãƒ­ãƒ¼ãƒ‰ãŒå®Œäº†ã—ã¾ã—ãŸ
+echo [OK] ƒ_ƒEƒ“ƒ[ƒh‚ªŠ®—¹‚µ‚Ü‚µ‚½
 echo.
 
-REM å®Œäº†ãƒ¡ãƒƒã‚»ãƒ¼ã‚¸
-echo [4/4] ã‚»ãƒƒãƒˆã‚¢ãƒƒãƒ—ãŒå®Œäº†ã—ã¾ã—ãŸï¼
+REM Š®—¹ƒƒbƒZ[ƒW
+echo [4/4] ƒZƒbƒgƒAƒbƒv‚ªŠ®—¹‚µ‚Ü‚µ‚½I
 echo.
 echo ============================================================
-echo æ¬¡ã®ã‚¹ãƒ†ãƒƒãƒ—
+echo ŽŸ‚ÌƒXƒeƒbƒv
 echo ============================================================
 echo.
-echo 1. ãƒ¢ãƒ‡ãƒ«ãƒ•ã‚¡ã‚¤ãƒ«ã‚’ä»¥ä¸‹ã®ãƒ•ã‚©ãƒ«ãƒ€ã«é…ç½®ã—ã¦ãã ã•ã„ï¼š
+echo 1. ƒ‚ƒfƒ‹ƒtƒ@ƒCƒ‹‚ðˆÈ‰º‚ÌƒtƒHƒ‹ƒ_‚É”z’u‚µ‚Ä‚­‚¾‚³‚¢F
 echo.
-echo    ã€ãƒ™ãƒ¼ã‚¹ãƒ¢ãƒ‡ãƒ«ã€‘
+echo    yƒx[ƒXƒ‚ƒfƒ‹z
 echo    %INSTALL_DIR%\models\Stable-diffusion\
-echo    â†’ anything-v5.safetensors ã‚’é…ç½®
+echo    ¨ anything-v5.safetensors ‚ð”z’u
 echo.
-echo    ã€LoRAãƒ¢ãƒ‡ãƒ«ã€‘
+echo    yLoRAƒ‚ƒfƒ‹z
 echo    %INSTALL_DIR%\models\Lora\
-echo    â†’ nasumiso_v1.safetensors ã‚’é…ç½®
+echo    ¨ nasumiso_v1.safetensors ‚ð”z’u
 echo.
-echo 2. ãƒ¢ãƒ‡ãƒ«ãƒ•ã‚¡ã‚¤ãƒ«ã®é…ç½®ãŒå®Œäº†ã—ãŸã‚‰ã€ä»¥ä¸‹ã®ãƒ•ã‚¡ã‚¤ãƒ«ã‚’
-echo    ãƒ€ãƒ–ãƒ«ã‚¯ãƒªãƒƒã‚¯ã—ã¦èµ·å‹•ã—ã¦ãã ã•ã„ï¼š
+echo 2. ƒ‚ƒfƒ‹ƒtƒ@ƒCƒ‹‚Ì”z’u‚ªŠ®—¹‚µ‚½‚çAˆÈ‰º‚Ìƒtƒ@ƒCƒ‹‚ð
+echo    ƒ_ƒuƒ‹ƒNƒŠƒbƒN‚µ‚Ä‹N“®‚µ‚Ä‚­‚¾‚³‚¢F
 echo.
 echo    %INSTALL_DIR%\webui-user.bat
 echo.
-echo    åˆå›žèµ·å‹•æ™‚ã¯ä¾å­˜é–¢ä¿‚ã®ã‚¤ãƒ³ã‚¹ãƒˆãƒ¼ãƒ«ã«10ã€œ20åˆ†ã‹ã‹ã‚Šã¾ã™ã€‚
+echo    ‰‰ñ‹N“®Žž‚ÍˆË‘¶ŠÖŒW‚ÌƒCƒ“ƒXƒg[ƒ‹‚É10`20•ª‚©‚©‚è‚Ü‚·B
 echo.
-echo 3. ãƒ–ãƒ©ã‚¦ã‚¶ã§ http://127.0.0.1:7860/ ã«ã‚¢ã‚¯ã‚»ã‚¹ã—ã¾ã™ã€‚
+echo 3. ƒuƒ‰ƒEƒU‚Å http://127.0.0.1:7860/ ‚ÉƒAƒNƒZƒX‚µ‚Ü‚·B
 echo.
 echo ============================================================
 echo.
-echo ãƒ‡ã‚¹ã‚¯ãƒˆãƒƒãƒ—ã«ã‚·ãƒ§ãƒ¼ãƒˆã‚«ãƒƒãƒˆã‚’ä½œæˆã™ã‚‹å ´åˆã¯ã€
-echo create_shortcut.bat ã‚’å®Ÿè¡Œã—ã¦ãã ã•ã„ã€‚
+echo ƒfƒXƒNƒgƒbƒv‚ÉƒVƒ‡[ƒgƒJƒbƒg‚ðì¬‚·‚éê‡‚ÍA
+echo create_shortcut.bat ‚ðŽÀs‚µ‚Ä‚­‚¾‚³‚¢B
 echo.
-echo è©³ã—ã„æ‰‹é †ã¯ docs\setup_windows.md ã‚’å‚ç…§ã—ã¦ãã ã•ã„ã€‚
+echo Ú‚µ‚¢Žè‡‚Í docs\setup_windows.md ‚ðŽQÆ‚µ‚Ä‚­‚¾‚³‚¢B
 echo.
 pause

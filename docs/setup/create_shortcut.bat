@@ -1,41 +1,40 @@
-ï»¿@echo off
-chcp 65001 >nul
+@echo off
 echo ====================================
-echo ãƒ‡ã‚¹ã‚¯ãƒˆãƒƒãƒ—ã‚·ãƒ§ãƒ¼ãƒˆã‚«ãƒƒãƒˆä½œæˆ
-echo ãªã™ã¿ãã‚¯ãƒªã‚¨ã‚¤ã‚¿ãƒ¼
+echo ƒfƒXƒNƒgƒbƒvƒVƒ‡[ƒgƒJƒbƒgì¬
+echo ‚È‚·‚Ý‚»ƒNƒŠƒGƒCƒ^[
 echo ====================================
 echo.
 
 set "INSTALL_DIR=%USERPROFILE%\Documents\stable-diffusion-webui"
 set "SHORTCUT=%USERPROFILE%\Desktop\Stable Diffusion WebUI.lnk"
 
-REM ã‚¤ãƒ³ã‚¹ãƒˆãƒ¼ãƒ«å…ˆã®ç¢ºèª
+REM ƒCƒ“ƒXƒg[ƒ‹æ‚ÌŠm”F
 if not exist "%INSTALL_DIR%\webui-user.bat" (
-    echo [ã‚¨ãƒ©ãƒ¼] Stable Diffusion WebUIãŒè¦‹ã¤ã‹ã‚Šã¾ã›ã‚“
+    echo [ƒGƒ‰[] Stable Diffusion WebUI‚ªŒ©‚Â‚©‚è‚Ü‚¹‚ñ
     echo.
-    echo å…ˆã« setup_windows.bat ã‚’å®Ÿè¡Œã—ã¦ã‚»ãƒƒãƒˆã‚¢ãƒƒãƒ—ã‚’å®Œäº†ã—ã¦ãã ã•ã„ã€‚
+    echo æ‚É setup_windows.bat ‚ðŽÀs‚µ‚ÄƒZƒbƒgƒAƒbƒv‚ðŠ®—¹‚µ‚Ä‚­‚¾‚³‚¢B
     echo.
     pause
     exit /b 1
 )
 
-REM ã‚·ãƒ§ãƒ¼ãƒˆã‚«ãƒƒãƒˆä½œæˆ
-echo ãƒ‡ã‚¹ã‚¯ãƒˆãƒƒãƒ—ã«ã‚·ãƒ§ãƒ¼ãƒˆã‚«ãƒƒãƒˆã‚’ä½œæˆã—ã¦ã„ã¾ã™...
-powershell -Command "$ws = New-Object -ComObject WScript.Shell; $s = $ws.CreateShortcut('%SHORTCUT%'); $s.TargetPath = '%INSTALL_DIR%\webui-user.bat'; $s.WorkingDirectory = '%INSTALL_DIR%'; $s.IconLocation = '%INSTALL_DIR%\webui-user.bat'; $s.Save()"
+REM ƒVƒ‡[ƒgƒJƒbƒgì¬
+echo ƒfƒXƒNƒgƒbƒv‚ÉƒVƒ‡[ƒgƒJƒbƒg‚ðì¬‚µ‚Ä‚¢‚Ü‚·...
+powershell -ExecutionPolicy Bypass -Command "$ws = New-Object -ComObject WScript.Shell; $s = $ws.CreateShortcut('%SHORTCUT%'); $s.TargetPath = '%INSTALL_DIR%\webui-user.bat'; $s.WorkingDirectory = '%INSTALL_DIR%'; $s.Save()"
 
 if errorlevel 1 (
     echo.
-    echo [ã‚¨ãƒ©ãƒ¼] ã‚·ãƒ§ãƒ¼ãƒˆã‚«ãƒƒãƒˆã®ä½œæˆã«å¤±æ•—ã—ã¾ã—ãŸ
+    echo [ƒGƒ‰[] ƒVƒ‡[ƒgƒJƒbƒg‚Ìì¬‚ÉŽ¸”s‚µ‚Ü‚µ‚½
     pause
     exit /b 1
 )
 
 echo.
-echo [OK] ãƒ‡ã‚¹ã‚¯ãƒˆãƒƒãƒ—ã«ã‚·ãƒ§ãƒ¼ãƒˆã‚«ãƒƒãƒˆã‚’ä½œæˆã—ã¾ã—ãŸ
+echo [OK] ƒfƒXƒNƒgƒbƒv‚ÉƒVƒ‡[ƒgƒJƒbƒg‚ðì¬‚µ‚Ü‚µ‚½
 echo.
-echo ã‚·ãƒ§ãƒ¼ãƒˆã‚«ãƒƒãƒˆå: Stable Diffusion WebUI
+echo ƒVƒ‡[ƒgƒJƒbƒg–¼: Stable Diffusion WebUI
 echo.
-echo ã“ã®ã‚·ãƒ§ãƒ¼ãƒˆã‚«ãƒƒãƒˆã‚’ãƒ€ãƒ–ãƒ«ã‚¯ãƒªãƒƒã‚¯ã™ã‚‹ã“ã¨ã§ã€
-echo Stable Diffusion WebUIã‚’èµ·å‹•ã§ãã¾ã™ã€‚
+echo ‚±‚ÌƒVƒ‡[ƒgƒJƒbƒg‚ðƒ_ƒuƒ‹ƒNƒŠƒbƒN‚·‚é‚±‚Æ‚ÅA
+echo Stable Diffusion WebUI‚ð‹N“®‚Å‚«‚Ü‚·B
 echo.
 pause
