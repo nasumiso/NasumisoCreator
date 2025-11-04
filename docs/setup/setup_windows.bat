@@ -1,126 +1,126 @@
 @echo off
 echo ====================================
-echo Stable Diffusion WebUI ﾃ｣ﾂｻﾃ｣ﾃ｣ﾃ｣ﾂ｢ﾃ｣ﾃ｣
-echo ﾃ｣ﾂｪﾃ｣ﾂｹﾃ｣ﾂｿﾃ｣ﾃ｣ﾃ｣ﾂｯﾃ｣ﾂｪﾃ｣ﾂｨﾃ｣ﾂ､ﾃ｣ﾂｿﾃ｣ﾂｼ
+echo Stable Diffusion WebUI セットアップ
+echo なすみそクリエイター(Windows)
 echo ====================================
 echo.
 
-REM ﾃ･ﾃｦﾂ｡ﾃ､ﾂｻﾂｶﾃ｣ﾃ｣ﾂｧﾃ｣ﾃ｣ﾂｯ
-echo [1/4] ﾃ･ﾃｦﾂ｡ﾃ､ﾂｻﾂｶﾃ｣ﾃ｣ﾂｧﾃ｣ﾃ｣ﾂｯﾃ｣ﾃ｣ﾂｦﾃ｣ﾃ｣ﾂｾﾃ｣...
+REM 前提条件チェック
+echo [1/4] 前提条件をチェックしています...
 echo.
 
-REM Pythonﾃ｣ﾂｮﾃ｣ﾃ｣ﾂｧﾃ｣ﾃ｣ﾂｯ
+REM Pythonのチェック
 python --version >nul 2>&1
 if errorlevel 1 (
-    echo [ﾃ｣ﾂｨﾃ｣ﾂｩﾃ｣ﾂｼ] Pythonﾃ｣ﾃ｣ﾂ､ﾃ｣ﾂｳﾃ｣ﾂｹﾃ｣ﾃ｣ﾂｼﾃ｣ﾂｫﾃ｣ﾃ｣ﾃ｣ﾂｦﾃ｣ﾃ｣ﾂｾﾃ｣ﾃ｣
+    echo [エラー] Pythonがインストールされていません
     echo.
-    echo ﾃ､ﾂｻﾂ･ﾃ､ﾂｸﾃ｣ﾂｮURLﾃ｣ﾃ｣Python 3.10.11ﾃ｣ﾃ｣ﾂｦﾃ｣ﾂｳﾃ｣ﾂｭﾃ｣ﾂｼﾃ｣ﾃ｣ﾃ｣ﾂｦﾃ｣ﾂ､ﾃ｣ﾂｳﾃ｣ﾂｹﾃ｣ﾃ｣ﾂｼﾃ｣ﾂｫﾃ｣ﾃ｣ﾂｦﾃ｣ﾃ｣ ﾃ｣ﾃ｣ﾃｯﾂｼ
+    echo 以下のURLからPython 3.10.11をダウンロードしてインストールしてください：
     echo https://www.python.org/downloads/release/python-31011/
     echo.
-    echo ﾃ｣ﾂ､ﾃ｣ﾂｳﾃ｣ﾂｹﾃ｣ﾃ｣ﾂｼﾃ｣ﾂｫﾃｦﾃ｣ﾂｮﾃｦﾂｳﾂｨﾃｦﾃｧﾂｹﾃｯﾂｼ
-    echo - ﾃ･ﾂｿﾃ｣ﾃ｣ﾃ｣Add Python to PATHﾃ｣ﾃ｣ﾂｫﾃ｣ﾃ｣ﾂｧﾃ｣ﾃ｣ﾂｯﾃ｣ﾃ･ﾂ･ﾃ｣ﾃ｣ﾂｦﾃ｣ﾃ｣ ﾃ｣ﾃ｣
-    echo - ﾃ｣ﾂ､ﾃ｣ﾂｳﾃ｣ﾂｹﾃ｣ﾃ｣ﾂｼﾃ｣ﾂｫﾃ･ﾂｾﾃ｣PCﾃ｣ﾃ･ﾃｨﾂｵﾂｷﾃ･ﾃ｣ﾃ｣ﾂｦﾃ｣ﾃ｣ ﾃ｣ﾃ｣
+    echo インストール時の注意点：
+    echo - 必ず「Add Python to PATH」にチェックを入れてください
+    echo - インストール後、PCを再起動してください
     echo.
     pause
     exit /b 1
 )
 
-echo [OK] Python ﾃ｣ﾃｨﾂｦﾃ｣ﾂ､ﾃ｣ﾃ｣ﾃ｣ﾂｾﾃ｣ﾃ｣
+echo [OK] Python が見つかりました
 python --version
 echo.
 
-REM Gitﾃ｣ﾂｮﾃ｣ﾃ｣ﾂｧﾃ｣ﾃ｣ﾂｯ
+REM Gitのチェック
 git --version >nul 2>&1
 if errorlevel 1 (
-    echo [ﾃ｣ﾂｨﾃ｣ﾂｩﾃ｣ﾂｼ] Gitﾃ｣ﾃ｣ﾂ､ﾃ｣ﾂｳﾃ｣ﾂｹﾃ｣ﾃ｣ﾂｼﾃ｣ﾂｫﾃ｣ﾃ｣ﾃ｣ﾂｦﾃ｣ﾃ｣ﾂｾﾃ｣ﾃ｣
+    echo [エラー] Gitがインストールされていません
     echo.
-    echo ﾃ､ﾂｻﾂ･ﾃ､ﾂｸﾃ｣ﾂｮURLﾃ｣ﾃ｣Git for Windowsﾃ｣ﾃ｣ﾂｦﾃ｣ﾂｳﾃ｣ﾂｭﾃ｣ﾂｼﾃ｣ﾃ｣ﾃ｣ﾂｦﾃ｣ﾂ､ﾃ｣ﾂｳﾃ｣ﾂｹﾃ｣ﾃ｣ﾂｼﾃ｣ﾂｫﾃ｣ﾃ｣ﾂｦﾃ｣ﾃ｣ ﾃ｣ﾃ｣ﾃｯﾂｼ
+    echo 以下のURLからGit for Windowsをダウンロードしてインストールしてください：
     echo https://git-scm.com/download/win
     echo.
-    echo ﾃ｣ﾂ､ﾃ｣ﾂｳﾃ｣ﾂｹﾃ｣ﾃ｣ﾂｼﾃ｣ﾂｫﾃ･ﾂｾﾃ｣PCﾃ｣ﾃ･ﾃｨﾂｵﾂｷﾃ･ﾃ｣ﾃ｣ﾂｦﾃ｣ﾃ｣ ﾃ｣ﾃ｣
+    echo インストール後、PCを再起動してください
     echo.
     pause
     exit /b 1
 )
 
-echo [OK] Git ﾃ｣ﾃｨﾂｦﾃ｣ﾂ､ﾃ｣ﾃ｣ﾃ｣ﾂｾﾃ｣ﾃ｣
+echo [OK] Git が見つかりました
 git --version
 echo.
 
-REM ﾃ｣ﾂ､ﾃ｣ﾂｳﾃ｣ﾂｹﾃ｣ﾃ｣ﾂｼﾃ｣ﾂｫﾃ･ﾃ｣ﾂｮﾃｧﾂ｢ﾂｺﾃｨﾂｪ
+REM インストール先の確認
 set "INSTALL_DIR=%USERPROFILE%\Documents\stable-diffusion-webui"
-echo [2/4] ﾃ｣ﾂ､ﾃ｣ﾂｳﾃ｣ﾂｹﾃ｣ﾃ｣ﾂｼﾃ｣ﾂｫﾃ･ﾃ｣ﾃｧﾂ｢ﾂｺﾃｨﾂｪﾃ｣ﾃ｣ﾂｦﾃ｣ﾃ｣ﾂｾﾃ｣...
-echo ﾃ｣ﾂ､ﾃ｣ﾂｳﾃ｣ﾂｹﾃ｣ﾃ｣ﾂｼﾃ｣ﾂｫﾃ･ﾃｯﾂｼ %INSTALL_DIR%
+echo [2/4] インストール先を確認しています...
+echo インストール先: %INSTALL_DIR%
 echo.
 
 if exist "%INSTALL_DIR%" (
-    echo [ﾃｨﾂｭﾂｦﾃ･] ﾃ｣ﾂ､ﾃ｣ﾂｳﾃ｣ﾂｹﾃ｣ﾃ｣ﾂｼﾃ｣ﾂｫﾃ･ﾃ｣ﾂｫﾃｦﾂ｢ﾃ｣ﾂｫﾃ｣ﾃ｣ﾂｩﾃ｣ﾂｫﾃ｣ﾃ｣ﾃ･ﾂｭﾃ･ﾂｨﾃ｣ﾃ｣ﾂｾﾃ｣
-    echo ﾃｦﾂ｢ﾃ･ﾂｭﾃ｣ﾂｮﾃ｣ﾃ｣ﾂｩﾃ｣ﾂｫﾃ｣ﾃ｣ﾃ･ﾃｩﾂ､ﾃ｣ﾃ｣ﾂｦﾃｦﾂｰﾃｨﾂｦﾃ｣ﾂ､ﾃ｣ﾂｳﾃ｣ﾂｹﾃ｣ﾃ｣ﾂｼﾃ｣ﾂｫﾃ｣ﾃ｣ﾂｾﾃ｣ﾃ｣ﾃｯﾂｼ
+    echo [警告] インストール先に既にフォルダが存在します
+    echo 既存のフォルダを削除して新規インストールしますか？
     echo.
-    echo Yﾃｯﾂｼ ﾃ･ﾃｩﾂ､ﾃ｣ﾃ｣ﾂｦﾃｦﾂｰﾃｨﾂｦﾃ｣ﾂ､ﾃ｣ﾂｳﾃ｣ﾂｹﾃ｣ﾃ｣ﾂｼﾃ｣ﾂｫ
-    echo Nﾃｯﾂｼ ﾃ｣ﾂｭﾃ｣ﾂ｣ﾃ｣ﾂｳﾃ｣ﾂｻﾃ｣ﾂｫ
+    echo Y: 削除して新規インストール
+    echo N: キャンセル
     echo.
-    choice /C YN /N /M "ﾃｩﾂｸﾃｦﾃ｣ﾃ｣ﾂｦﾃ｣ﾃ｣ ﾃ｣ﾃ｣ (Y/N): "
+    choice /C YN /N /M "選択してください (Y/N): "
     if errorlevel 2 (
         echo.
-        echo ﾃ｣ﾂｭﾃ｣ﾂ｣ﾃ｣ﾂｳﾃ｣ﾂｻﾃ｣ﾂｫﾃ｣ﾃ｣ﾂｾﾃ｣ﾃ｣
+        echo キャンセルしました
         pause
         exit /b 0
     )
     echo.
-    echo ﾃｦﾂ｢ﾃ･ﾂｭﾃ｣ﾂｮﾃ｣ﾃ｣ﾂｩﾃ｣ﾂｫﾃ｣ﾃ｣ﾃ･ﾃｩﾂ､ﾃ｣ﾃ｣ﾂｦﾃ｣ﾃ｣ﾂｾﾃ｣...
+    echo 既存のフォルダを削除しています...
     rmdir /s /q "%INSTALL_DIR%"
 )
 
-REM WebUIﾃ｣ﾂｮﾃ｣ﾂｯﾃ｣ﾂｭﾃ｣ﾂｼﾃ｣ﾂｳ
-echo [3/4] Stable Diffusion WebUIﾃ｣ﾃ｣ﾂｦﾃ｣ﾂｳﾃ｣ﾂｭﾃ｣ﾂｼﾃ｣ﾃ｣ﾃ｣ﾂｦﾃ｣ﾃ｣ﾂｾﾃ｣...
-echo ﾃｯﾂｼﾃｦﾂｰﾃ･ﾃ｣ﾃ｣ﾃ｣ﾃ｣ﾃ･ ﾂｴﾃ･ﾃ｣ﾃ｣ﾃ｣ﾃ｣ﾂｾﾃ｣ﾃｯﾂｼ
+REM WebUIのクローン
+echo [3/4] Stable Diffusion WebUIをダウンロードしています...
+echo （数分かかる場合があります）
 echo.
 
 git clone https://github.com/AUTOMATIC1111/stable-diffusion-webui.git "%INSTALL_DIR%"
 if errorlevel 1 (
     echo.
-    echo [ﾃ｣ﾂｨﾃ｣ﾂｩﾃ｣ﾂｼ] ﾃ｣ﾂｦﾃ｣ﾂｳﾃ｣ﾂｭﾃ｣ﾂｼﾃ｣ﾃ｣ﾂｫﾃ･ﾂ､ﾂｱﾃｦﾃ｣ﾃ｣ﾂｾﾃ｣ﾃ｣
-    echo ﾃ｣ﾂ､ﾃ｣ﾂｳﾃ｣ﾂｿﾃ｣ﾂｼﾃ｣ﾃ｣ﾃ｣ﾃｦﾂ･ﾃｧﾂｶﾃ｣ﾃｧﾂ｢ﾂｺﾃｨﾂｪﾃ｣ﾃ｣ﾂｦﾃ｣ﾃ｣ ﾃ｣ﾃ｣
+    echo [エラー] ダウンロードに失敗しました
+    echo インターネット接続を確認してください
     pause
     exit /b 1
 )
 
 echo.
-echo [OK] ﾃ｣ﾂｦﾃ｣ﾂｳﾃ｣ﾂｭﾃ｣ﾂｼﾃ｣ﾃ｣ﾃ･ﾂｮﾃ､ﾂｺﾃ｣ﾃ｣ﾂｾﾃ｣ﾃ｣
+echo [OK] ダウンロードが完了しました
 echo.
 
-REM ﾃ･ﾂｮﾃ､ﾂｺﾃ｣ﾂ｡ﾃ｣ﾃ｣ﾂｻﾃ｣ﾂｼﾃ｣ﾂｸ
-echo [4/4] ﾃ｣ﾂｻﾃ｣ﾃ｣ﾃ｣ﾂ｢ﾃ｣ﾃ｣ﾃ｣ﾃ･ﾂｮﾃ､ﾂｺﾃ｣ﾃ｣ﾂｾﾃ｣ﾃ｣ﾃｯﾂｼ
+REM 完了メッセージ
+echo [4/4] セットアップが完了しました！
 echo.
 echo ============================================================
-echo ﾃｦﾂｬﾂ｡ﾃ｣ﾂｮﾃ｣ﾂｹﾃ｣ﾃ｣ﾃ｣
+echo 次のステップ
 echo ============================================================
 echo.
-echo 1. ﾃ｣ﾂ｢ﾃ｣ﾃ｣ﾂｫﾃ｣ﾃ｣ﾂ｡ﾃ｣ﾂ､ﾃ｣ﾂｫﾃ｣ﾃ､ﾂｻﾂ･ﾃ､ﾂｸﾃ｣ﾂｮﾃ｣ﾃ｣ﾂｩﾃ｣ﾂｫﾃ｣ﾃ｣ﾂｫﾃｩ ﾃｧﾂｽﾂｮﾃ｣ﾃ｣ﾂｦﾃ｣ﾃ｣ ﾃ｣ﾃ｣ﾃｯﾂｼ
+echo 1. モデルファイルを以下のフォルダに配置してください：
 echo.
-echo    ﾃ｣ﾃ｣ﾂｼﾃ｣ﾂｹﾃ｣ﾂ｢ﾃ｣ﾃ｣ﾂｫﾃ｣
+echo    【ベースモデル】
 echo    %INSTALL_DIR%\models\Stable-diffusion\
-echo    ﾃ｢ anything-v5.safetensors ﾃ｣ﾃｩ ﾃｧﾂｽﾂｮ
+echo    → anything-v5.safetensors を配置
 echo.
-echo    ﾃ｣LoRAﾃ｣ﾂ｢ﾃ｣ﾃ｣ﾂｫﾃ｣
+echo    【LoRAモデル】
 echo    %INSTALL_DIR%\models\Lora\
-echo    ﾃ｢ nasumiso_v1.safetensors ﾃ｣ﾃｩ ﾃｧﾂｽﾂｮ
+echo    → nasumiso_v1.safetensors を配置
 echo.
-echo 2. ﾃ｣ﾂ｢ﾃ｣ﾃ｣ﾂｫﾃ｣ﾃ｣ﾂ｡ﾃ｣ﾂ､ﾃ｣ﾂｫﾃ｣ﾂｮﾃｩ ﾃｧﾂｽﾂｮﾃ｣ﾃ･ﾂｮﾃ､ﾂｺﾃ｣ﾃ｣ﾃ｣ﾃ｣
-echo    ﾃ｣ﾃ｣ﾂｦﾃ｣ﾂｳﾃ｣ﾂｭﾃ｣ﾂｪﾃ｣ﾃ｣ﾂｯﾃ｣ﾃ｣ﾂｦﾃｨﾂｵﾂｷﾃ･ﾃ｣ﾃ｣ﾂｦﾃ｣ﾃ｣ ﾃ｣ﾃ｣ﾃｯﾂｼ
+echo 2. モデルファイルの配置が完了したら、以下のファイルを
+echo    ダブルクリックして起動してください：
 echo.
 echo    %INSTALL_DIR%\webui-user.bat
 echo.
-echo    ﾃ･ﾃ･ﾃ･ﾃｨﾂｵﾂｷﾃ･ﾃｦﾃ｣ﾂｯﾃ､ﾂｾﾃ･ﾂｭﾃｩﾂ｢ﾃ､ﾂｿﾃ｣ﾂｮﾃ｣ﾂ､ﾃ｣ﾂｳﾃ｣ﾂｹﾃ｣ﾃ｣ﾂｼﾃ｣ﾂｫﾃ｣ﾂｫ10ﾃｯﾂｽ20ﾃ･ﾃ｣ﾃ｣ﾃ｣ﾃ｣ﾃ｣ﾂｾﾃ｣ﾃ｣
+echo    初回起動時は依存関係のインストールに10～20分かかります。
 echo.
-echo 3. ﾃ｣ﾃ｣ﾂｩﾃ｣ﾂｦﾃ｣ﾂｶﾃ｣ﾂｧ http://127.0.0.1:7860/ ﾃ｣ﾂｫﾃ｣ﾂ｢ﾃ｣ﾂｯﾃ｣ﾂｻﾃ｣ﾂｹﾃ｣ﾃ｣ﾂｾﾃ｣ﾃ｣
+echo 3. ブラウザで http://127.0.0.1:7860/ にアクセスします。
 echo.
 echo ============================================================
 echo.
-echo ﾃ｣ﾃ｣ﾂｹﾃ｣ﾂｯﾃ｣ﾃ｣ﾃ｣ﾃ｣ﾂｫﾃ｣ﾂｷﾃ｣ﾂｧﾃ｣ﾂｼﾃ｣ﾃ｣ﾂｫﾃ｣ﾃ｣ﾃ､ﾂｽﾃｦﾃ｣ﾃ｣ﾃ･ ﾂｴﾃ･ﾃ｣ﾂｯﾃ｣
-echo create_shortcut.bat ﾃ｣ﾃ･ﾂｮﾃｨﾂ｡ﾃ｣ﾃ｣ﾂｦﾃ｣ﾃ｣ ﾃ｣ﾃ｣ﾃ｣
+echo デスクトップにショートカットを作成する場合は、
+echo create_shortcut.bat を実行してください。
 echo.
-echo ﾃｨﾂｩﾂｳﾃ｣ﾃ｣ﾃｦﾃｩ ﾃ｣ﾂｯ docs\setup_windows.md ﾃ｣ﾃ･ﾃｧﾂｧﾃ｣ﾃ｣ﾂｦﾃ｣ﾃ｣ ﾃ｣ﾃ｣ﾃ｣
+echo 詳しい手順は docs\setup_windows.md を参照してください。
 echo.
 pause

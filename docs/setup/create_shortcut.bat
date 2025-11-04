@@ -1,40 +1,40 @@
 @echo off
 echo ====================================
-echo ﾃ｣ﾃ｣ﾂｹﾃ｣ﾂｯﾃ｣ﾃ｣ﾃ｣ﾃ｣ﾂｷﾃ｣ﾂｧﾃ｣ﾂｼﾃ｣ﾃ｣ﾂｫﾃ｣ﾃ｣ﾃ､ﾂｽﾃｦ
-echo ﾃ｣ﾂｪﾃ｣ﾂｹﾃ｣ﾂｿﾃ｣ﾃ｣ﾃ｣ﾂｯﾃ｣ﾂｪﾃ｣ﾂｨﾃ｣ﾂ､ﾃ｣ﾂｿﾃ｣ﾂｼ
+echo デスクトップショートカット作成
+echo なすみそクリエイター
 echo ====================================
 echo.
 
 set "INSTALL_DIR=%USERPROFILE%\Documents\stable-diffusion-webui"
 set "SHORTCUT=%USERPROFILE%\Desktop\Stable Diffusion WebUI.lnk"
 
-REM ﾃ｣ﾂ､ﾃ｣ﾂｳﾃ｣ﾂｹﾃ｣ﾃ｣ﾂｼﾃ｣ﾂｫﾃ･ﾃ｣ﾂｮﾃｧﾂ｢ﾂｺﾃｨﾂｪ
+REM インストール先の確認
 if not exist "%INSTALL_DIR%\webui-user.bat" (
-    echo [ﾃ｣ﾂｨﾃ｣ﾂｩﾃ｣ﾂｼ] Stable Diffusion WebUIﾃ｣ﾃｨﾂｦﾃ｣ﾂ､ﾃ｣ﾃ｣ﾃ｣ﾂｾﾃ｣ﾃ｣
+    echo [エラー] Stable Diffusion WebUIが見つかりません
     echo.
-    echo ﾃ･ﾃ｣ﾂｫ setup_windows.bat ﾃ｣ﾃ･ﾂｮﾃｨﾂ｡ﾃ｣ﾃ｣ﾂｦﾃ｣ﾂｻﾃ｣ﾃ｣ﾃ｣ﾂ｢ﾃ｣ﾃ｣ﾃ｣ﾃ･ﾂｮﾃ､ﾂｺﾃ｣ﾃ｣ﾂｦﾃ｣ﾃ｣ ﾃ｣ﾃ｣ﾃ｣
+    echo 先に setup_windows.bat を実行してセットアップを完了してください。
     echo.
     pause
     exit /b 1
 )
 
-REM ﾃ｣ﾂｷﾃ｣ﾂｧﾃ｣ﾂｼﾃ｣ﾃ｣ﾂｫﾃ｣ﾃ｣ﾃ､ﾂｽﾃｦ
-echo ﾃ｣ﾃ｣ﾂｹﾃ｣ﾂｯﾃ｣ﾃ｣ﾃ｣ﾃ｣ﾂｫﾃ｣ﾂｷﾃ｣ﾂｧﾃ｣ﾂｼﾃ｣ﾃ｣ﾂｫﾃ｣ﾃ｣ﾃ｣ﾃ､ﾂｽﾃｦﾃ｣ﾃ｣ﾂｦﾃ｣ﾃ｣ﾂｾﾃ｣...
-powershell -Command "$ws = New-Object -ComObject WScript.Shell; $s = $ws.CreateShortcut('%SHORTCUT%'); $s.TargetPath = '%INSTALL_DIR%\webui-user.bat'; $s.WorkingDirectory = '%INSTALL_DIR%'; $s.IconLocation = '%INSTALL_DIR%\webui-user.bat'; $s.Save()"
+REM ショートカット作成
+echo デスクトップにショートカットを作成しています...
+powershell -ExecutionPolicy Bypass -Command "$ws = New-Object -ComObject WScript.Shell; $s = $ws.CreateShortcut('%SHORTCUT%'); $s.TargetPath = '%INSTALL_DIR%\webui-user.bat'; $s.WorkingDirectory = '%INSTALL_DIR%'; $s.Save()"
 
 if errorlevel 1 (
     echo.
-    echo [ﾃ｣ﾂｨﾃ｣ﾂｩﾃ｣ﾂｼ] ﾃ｣ﾂｷﾃ｣ﾂｧﾃ｣ﾂｼﾃ｣ﾃ｣ﾂｫﾃ｣ﾃ｣ﾃ｣ﾂｮﾃ､ﾂｽﾃｦﾃ｣ﾂｫﾃ･ﾂ､ﾂｱﾃｦﾃ｣ﾃ｣ﾂｾﾃ｣ﾃ｣
+    echo [エラー] ショートカットの作成に失敗しました
     pause
     exit /b 1
 )
 
 echo.
-echo [OK] ﾃ｣ﾃ｣ﾂｹﾃ｣ﾂｯﾃ｣ﾃ｣ﾃ｣ﾃ｣ﾂｫﾃ｣ﾂｷﾃ｣ﾂｧﾃ｣ﾂｼﾃ｣ﾃ｣ﾂｫﾃ｣ﾃ｣ﾃ｣ﾃ､ﾂｽﾃｦﾃ｣ﾃ｣ﾂｾﾃ｣ﾃ｣
+echo [OK] デスクトップにショートカットを作成しました
 echo.
-echo ﾃ｣ﾂｷﾃ｣ﾂｧﾃ｣ﾂｼﾃ｣ﾃ｣ﾂｫﾃ｣ﾃ｣ﾃ･ﾃｯﾂｼ Stable Diffusion WebUI
+echo ショートカット名: Stable Diffusion WebUI
 echo.
-echo ﾃ｣ﾃ｣ﾂｮﾃ｣ﾂｷﾃ｣ﾂｧﾃ｣ﾂｼﾃ｣ﾃ｣ﾂｫﾃ｣ﾃ｣ﾃ｣ﾃ｣ﾃ｣ﾃ｣ﾂｫﾃ｣ﾂｯﾃ｣ﾂｪﾃ｣ﾃ｣ﾂｯﾃ｣ﾃ｣ﾃ｣ﾃ｣ﾂｨﾃ｣ﾂｧﾃ｣
-echo Stable Diffusion WebUIﾃ｣ﾃｨﾂｵﾂｷﾃ･ﾃ｣ﾂｧﾃ｣ﾃ｣ﾂｾﾃ｣ﾃ｣
+echo このショートカットをダブルクリックすることで、
+echo Stable Diffusion WebUIを起動できます。
 echo.
 pause
