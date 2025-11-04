@@ -2,7 +2,8 @@
 
 - nasumiso_v1/2_processed は不要 nasumiso_v1/3_taggedにまとめる
 - StableDiffusionのパラメータやプロンプトを管理
-
+- 日本語プロンプトからStableDiffusionの英語プロンプトに
+  
 ## なすみそ環境での実行
 現在こすうけのMacBookAirで一連のワークフローを実行できた状況。
 なすみそのWindows環境でも実行できるようにしたい。

@@ -50,27 +50,21 @@ git --version
 
 ## セットアップ手順
 
-### Step 1: このリポジトリをダウンロード
+### Step 1: セットアップファイルを入手
 
-以下のいずれかの方法でこのリポジトリを入手します。
+こすうけさんから以下のファイルを受け取ってください：
 
-#### 方法A: ZIPでダウンロード（推奨）
+- **setup_windows.bat** - 自動セットアップスクリプト
+- **create_shortcut.bat** - デスクトップショートカット作成用（オプション）
+- **setup_windows.md** - このセットアップガイド（今読んでいるファイル）
+- **quickstart_nasumiso.md** - 画像生成の使い方ガイド
+- **model_download.md** - モデルファイルのダウンロード方法
 
-1. こすうけさんから共有されたZIPファイルをダウンロード
-2. 適当な場所（例: `C:\Users\なすみそ\Documents\`）に解凍
-3. 解凍したフォルダ内の `setup` フォルダを開く
-
-#### 方法B: Git cloneでダウンロード
-
-```cmd
-cd %USERPROFILE%\Documents
-git clone [リポジトリURL]
-cd NasumisoCreator\setup
-```
+これらのファイルを適当な場所（例: `C:\Users\なすみそ\Documents\NasumisoSetup\`）に保存してください。
 
 ### Step 2: 自動セットアップスクリプトを実行
 
-1. `setup` フォルダ内の **`setup_windows.bat`** を右クリック
+1. 保存した **`setup_windows.bat`** を右クリック
 2. 「管理者として実行」を選択
 3. スクリプトが以下を自動的に実行します：
    - Python/Gitのインストール確認
@@ -83,10 +77,10 @@ cd NasumisoCreator\setup
 
 #### 3-1. モデルファイルをダウンロード
 
-こすうけさんから共有されたGoogle Driveリンクから以下をダウンロード：
+こすうけさんから共有された[Google Driveリンク](https://drive.google.com/drive/folders/1YAcEx0EJ4yVIPVVD46W5IqcNOzfsKQNu?usp=drive_link)から以下をダウンロード：
 
-- `anything-v5.safetensors` (ベースモデル)
-- `nasumiso_v1.safetensors` (LoRAモデル)
+- `models/anything-v5.safetensors` (ベースモデル)
+- `output/nasumiso_v1.safetensors` (LoRAモデル)
 
 #### 3-2. モデルファイルを配置
 
@@ -129,7 +123,7 @@ C:\Users\[ユーザー名]\Documents\stable-diffusion-webui\models\Lora\
 
 毎回ファイルを探すのが面倒な場合、デスクトップにショートカットを作成できます。
 
-1. `setup` フォルダ内の **`create_shortcut.bat`** をダブルクリック
+1. Step 1で保存した **`create_shortcut.bat`** をダブルクリック
 2. デスクトップに「Stable Diffusion WebUI」というショートカットが作成されます
 3. 次回からはこのショートカットをダブルクリックするだけで起動できます
 
