@@ -35,6 +35,12 @@ desktop.ini
 # 一時ファイル
 *.tmp
 *.log
+logs/
+
+# Gradio WebUI関連
+config.json
+credentials.json
+token.json
 
 # 外部ツール（stable-diffusion-webui は別管理）
 stable-diffusion-webui/

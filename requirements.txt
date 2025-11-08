@@ -1,13 +1,21 @@
 # Python dependencies for NasumisoCreator
 
 # 画像処理
-Pillow>=10.0.0
+Pillow==10.4.0
 
 # WD14 Tagger (自動タグ付け)
 # Note: onnxruntime 1.15.0+ includes CoreMLExecutionProvider for Mac acceleration
 onnxruntime>=1.15.0
-numpy>=1.24.0
-pandas>=2.0.0
-huggingface-hub>=0.16.0
+numpy==2.0.2
+pandas==2.3.3
+huggingface-hub==0.36.0  # IMPORTANT: <1.0 required for Gradio 4.44.1 compatibility
+
+# Gradio WebUI
+gradio==4.44.1
+
+# Google Drive API（将来の実装用）
+# google-auth-oauthlib>=1.0
+# google-auth-httplib2>=0.1
+# google-api-python-client>=2.0
 
 # その他は実装時に追記

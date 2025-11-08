@@ -1,0 +1,2 @@
+# Minimal requirements for testing Gradio
+gradio

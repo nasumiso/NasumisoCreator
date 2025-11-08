@@ -1,0 +1,512 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+Nasumiso LoRA Training Assistant - Gradio WebUI
+
+なすみそLoRA学習アシスタントツール
+"""
+
+import json
+import logging
+import sys
+from datetime import datetime
+from pathlib import Path
+from typing import Dict, List, Optional, Tuple
+
+import gradio as gr
+
+# 既存スクリプトのインポート
+sys.path.append(str(Path(__file__).parent / "scripts"))
+from prepare_images import get_image_files, resize_and_crop
+from auto_caption import WD14Tagger
+from add_common_tag import add_tag_to_file
+
+# ログ設定
+LOG_DIR = Path(__file__).parent / "logs"
+LOG_DIR.mkdir(exist_ok=True)
+
+log_file = LOG_DIR / f"nasumiso_trainer_{datetime.now().strftime('%Y%m%d_%H%M%S')}.log"
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.FileHandler(log_file, encoding='utf-8'),
+        logging.StreamHandler(sys.stdout)
+    ]
+)
+logger = logging.getLogger(__name__)
+
+# 設定ファイルパス
+CONFIG_FILE = Path(__file__).parent / "config.json"
+
+# デフォルト設定
+DEFAULT_CONFIG = {
+    "sd_webui_path": str(Path.home() / "stable-diffusion-webui" / "models" / "Lora"),
+    "training_mode": "colab",
+    "default_raw_images_dir": "projects/nasumiso_v1/1_raw_images",
+    "default_processed_dir": "projects/nasumiso_v1/2_processed",
+    "default_tagged_dir": "projects/nasumiso_v1/3_tagged",
+    "default_lora_models_dir": "projects/nasumiso_v1/lora_models",
+    "image_size": 512,
+    "caption_threshold": 0.35,
+    "common_tag": "nasumiso_style"
+}
+
+
+def load_config() -> Dict:
+    """設定ファイルを読み込む"""
+    if CONFIG_FILE.exists():
+        try:
+            with open(CONFIG_FILE, 'r', encoding='utf-8') as f:
+                config = json.load(f)
+                logger.info(f"設定を読み込みました: {CONFIG_FILE}")
+                return {**DEFAULT_CONFIG, **config}
+        except Exception as e:
+            logger.error(f"設定ファイル読み込みエラー: {e}")
+            return DEFAULT_CONFIG.copy()
+    return DEFAULT_CONFIG.copy()
+
+
+def save_config(config: Dict) -> bool:
+    """設定ファイルを保存する"""
+    try:
+        with open(CONFIG_FILE, 'w', encoding='utf-8') as f:
+            json.dump(config, f, indent=2, ensure_ascii=False)
+        logger.info(f"設定を保存しました: {CONFIG_FILE}")
+        return True
+    except Exception as e:
+        logger.error(f"設定ファイル保存エラー: {e}")
+        return False
+
+
+# グローバル設定
+config = load_config()
+
+
+# ==================== タブ1: 画像準備 ====================
+
+def prepare_images_pipeline(
+    input_dir: str,
+    progress=gr.Progress()
+) -> str:
+    """
+    画像準備パイプライン: リサイズ → 自動タグ付け → 共通タグ追加
+
+    Args:
+        input_dir: 入力ディレクトリパス
+        progress: Gradio進捗表示オブジェクト
+
+    Returns:
+        処理結果メッセージ
+    """
+    try:
+        input_path = Path(input_dir)
+        if not input_path.exists():
+            error_msg = f"❌ エラー: 入力ディレクトリが存在しません: {input_dir}"
+            logger.error(error_msg)
+            return error_msg
+
+        # 出力ディレクトリの設定
+        processed_dir = Path(config["default_processed_dir"])
+        tagged_dir = Path(config["default_tagged_dir"])
+        processed_dir.mkdir(parents=True, exist_ok=True)
+        tagged_dir.mkdir(parents=True, exist_ok=True)
+
+        result_messages = []
+
+        # ステップ1: 画像のリサイズとリネーム
+        progress(0.0, desc="ステップ1/3: 画像をリサイズ中...")
+        logger.info(f"ステップ1: 画像リサイズ開始 ({input_dir} → {processed_dir})")
+
+        image_files = get_image_files(input_path)
+        if not image_files:
+            error_msg = f"❌ エラー: 画像ファイルが見つかりません: {input_dir}"
+            logger.error(error_msg)
+            return error_msg
+
+        total_images = len(image_files)
+        result_messages.append(f"📁 入力画像数: {total_images}枚")
+
+        # 画像処理
+        from PIL import Image
+        for i, img_file in enumerate(image_files):
+            progress((i / total_images) * 0.33, desc=f"リサイズ中: {img_file.name} ({i+1}/{total_images})")
+
+            # 画像読み込み
+            img = Image.open(img_file)
+
+            # リサイズ & クロップ
+            img_resized = resize_and_crop(img, config["image_size"])
+
+            # 保存（連番リネーム）
+            output_filename = f"img{i+1:03d}.png"
+            output_path = processed_dir / output_filename
+            img_resized.save(output_path, "PNG")
+            logger.info(f"保存: {output_path}")
+
+        result_messages.append(f"✅ ステップ1完了: {total_images}枚の画像をリサイズしました")
+
+        # ステップ2: 自動タグ付け
+        progress(0.33, desc="ステップ2/3: 自動タグ付け中...")
+        logger.info(f"ステップ2: 自動タグ付け開始 ({processed_dir} → {tagged_dir})")
+
+        tagger = WD14Tagger(threshold=config["caption_threshold"], use_coreml=False)
+        processed_images = list(processed_dir.glob("*.png"))
+
+        for i, img_file in enumerate(processed_images):
+            progress(0.33 + (i / len(processed_images)) * 0.33,
+                    desc=f"タグ付け中: {img_file.name} ({i+1}/{len(processed_images)})")
+
+            # タグ生成
+            tags = tagger.predict(str(img_file))
+
+            # 画像とタグファイルをコピー
+            output_img_path = tagged_dir / img_file.name
+            output_txt_path = tagged_dir / (img_file.stem + ".txt")
+
+            # 画像コピー
+            import shutil
+            shutil.copy2(img_file, output_img_path)
+
+            # タグ保存
+            output_txt_path.write_text(", ".join(tags), encoding='utf-8')
+            logger.info(f"タグ付け: {output_img_path.name} -> {len(tags)}個のタグ")
+
+        result_messages.append(f"✅ ステップ2完了: {len(processed_images)}枚の画像にタグを付けました")
+
+        # ステップ3: 共通タグ追加
+        progress(0.66, desc="ステップ3/3: 共通タグ追加中...")
+        logger.info(f"ステップ3: 共通タグ'{config['common_tag']}'を追加中")
+
+        txt_files = list(tagged_dir.glob("*.txt"))
+        added_count = 0
+
+        for i, txt_file in enumerate(txt_files):
+            progress(0.66 + (i / len(txt_files)) * 0.33,
+                    desc=f"共通タグ追加中: {txt_file.name} ({i+1}/{len(txt_files)})")
+
+            if add_tag_to_file(txt_file, config["common_tag"], position="start"):
+                added_count += 1
+
+        result_messages.append(f"✅ ステップ3完了: {added_count}個のファイルに共通タグを追加しました")
+
+        # 完了
+        progress(1.0, desc="✅ 全処理完了!")
+        logger.info("画像準備パイプライン完了")
+
+        result_messages.append(f"\n🎉 すべての処理が完了しました!")
+        result_messages.append(f"📂 出力先: {tagged_dir}")
+
+        return "\n".join(result_messages)
+
+    except Exception as e:
+        error_msg = f"❌ エラーが発生しました: {str(e)}"
+        logger.exception(error_msg)
+        return error_msg
+
+
+# ==================== タブ2: タグ編集 ====================
+
+def load_tagged_images() -> List[Tuple[str, str]]:
+    """タグ付き画像を読み込む"""
+    tagged_dir = Path(config["default_tagged_dir"])
+    if not tagged_dir.exists():
+        return []
+
+    image_files = sorted(tagged_dir.glob("*.png"))
+    # Gradioのギャラリー形式: [(image_path, caption), ...]
+    return [(str(img), img.stem) for img in image_files]
+
+
+def load_tags_for_image(image_path: str) -> str:
+    """指定画像のタグを読み込む"""
+    if not image_path:
+        return ""
+
+    img_path = Path(image_path)
+    txt_path = img_path.with_suffix(".txt")
+
+    if txt_path.exists():
+        return txt_path.read_text(encoding='utf-8')
+    return ""
+
+
+def save_tags_for_image(image_path: str, tags: str) -> str:
+    """指定画像のタグを保存する"""
+    if not image_path:
+        return "❌ 画像が選択されていません"
+
+    try:
+        img_path = Path(image_path)
+        txt_path = img_path.with_suffix(".txt")
+
+        txt_path.write_text(tags, encoding='utf-8')
+        logger.info(f"タグを保存しました: {txt_path}")
+        return f"✅ タグを保存しました: {txt_path.name}"
+    except Exception as e:
+        error_msg = f"❌ エラー: {str(e)}"
+        logger.error(error_msg)
+        return error_msg
+
+
+def add_tag_to_selected_images(selected_indices: List[int], tag_to_add: str, gallery_images: List) -> str:
+    """選択した画像に固有タグを追加"""
+    if not selected_indices:
+        return "❌ 画像が選択されていません"
+
+    if not tag_to_add.strip():
+        return "❌ 追加するタグを入力してください"
+
+    try:
+        added_count = 0
+        for idx in selected_indices:
+            if idx < len(gallery_images):
+                image_path = gallery_images[idx][0]
+                img_path = Path(image_path)
+                txt_path = img_path.with_suffix(".txt")
+
+                if add_tag_to_file(txt_path, tag_to_add.strip(), position="start"):
+                    added_count += 1
+
+        logger.info(f"{added_count}個のファイルにタグ'{tag_to_add}'を追加しました")
+        return f"✅ {added_count}個の画像にタグ'{tag_to_add}'を追加しました"
+    except Exception as e:
+        error_msg = f"❌ エラー: {str(e)}"
+        logger.error(error_msg)
+        return error_msg
+
+
+# ==================== タブ3: 学習・モデル管理 ====================
+
+def upload_to_google_drive_stub() -> str:
+    """Google Driveアップロード（スタブ実装）"""
+    return "⚠️ この機能は将来実装予定です\n現在は手動でGoogle Driveにアップロードしてください"
+
+
+def download_model_from_drive_stub() -> str:
+    """Google Driveからモデルダウンロード（スタブ実装）"""
+    return "⚠️ この機能は将来実装予定です\n現在は手動でモデルをダウンロードしてください"
+
+
+def deploy_model_to_sd_webui() -> str:
+    """Stable Diffusion WebUIにモデルを配置"""
+    try:
+        lora_models_dir = Path(config["default_lora_models_dir"])
+        sd_webui_path = Path(config["sd_webui_path"])
+
+        if not lora_models_dir.exists():
+            return f"❌ LoRAモデルディレクトリが存在しません: {lora_models_dir}"
+
+        # .safetensorsファイルを検索
+        model_files = list(lora_models_dir.glob("*.safetensors"))
+
+        if not model_files:
+            return f"❌ モデルファイル(.safetensors)が見つかりません: {lora_models_dir}"
+
+        # SD WebUIディレクトリ作成
+        sd_webui_path.mkdir(parents=True, exist_ok=True)
+
+        # モデルをコピー
+        import shutil
+        copied_count = 0
+        for model_file in model_files:
+            dest_path = sd_webui_path / model_file.name
+            shutil.copy2(model_file, dest_path)
+            logger.info(f"モデルをコピー: {model_file.name} → {dest_path}")
+            copied_count += 1
+
+        return f"✅ {copied_count}個のモデルをStable Diffusion WebUIに配置しました\n📂 {sd_webui_path}"
+
+    except Exception as e:
+        error_msg = f"❌ エラー: {str(e)}"
+        logger.error(error_msg)
+        return error_msg
+
+
+# ==================== タブ4: 設定 ====================
+
+def load_settings() -> Tuple[str, str]:
+    """設定を読み込む"""
+    return config["sd_webui_path"], config["training_mode"]
+
+
+def save_settings(sd_path: str, training_mode: str) -> str:
+    """設定を保存する"""
+    try:
+        config["sd_webui_path"] = sd_path
+        config["training_mode"] = training_mode
+
+        if save_config(config):
+            return "✅ 設定を保存しました"
+        else:
+            return "❌ 設定の保存に失敗しました"
+    except Exception as e:
+        error_msg = f"❌ エラー: {str(e)}"
+        logger.error(error_msg)
+        return error_msg
+
+
+# ==================== Gradio UI ====================
+
+def create_ui():
+    """Gradio UIを作成"""
+
+    with gr.Blocks(title="Nasumiso LoRA Training Assistant", theme=gr.themes.Soft()) as app:
+        gr.Markdown("# 🎨 Nasumiso LoRA Training Assistant")
+        gr.Markdown("なすみそLoRA学習アシスタントツール")
+
+        with gr.Tabs():
+            # タブ1: 画像準備
+            with gr.Tab("📁 画像準備"):
+                gr.Markdown("### 画像のリサイズ・自動タグ付け・共通タグ追加を一括実行")
+
+                with gr.Row():
+                    input_dir = gr.Textbox(
+                        label="入力フォルダ",
+                        value=config["default_raw_images_dir"],
+                        placeholder="例: projects/nasumiso_v1/1_raw_images"
+                    )
+
+                prepare_btn = gr.Button("🚀 変換開始", variant="primary", size="lg")
+                result_text = gr.Textbox(label="処理結果", lines=10, interactive=False)
+
+                prepare_btn.click(
+                    fn=prepare_images_pipeline,
+                    inputs=[input_dir],
+                    outputs=[result_text]
+                )
+
+            # タブ2: タグ編集
+            with gr.Tab("🏷️ タグ編集"):
+                gr.Markdown("### 画像ごとのタグ表示・編集、固有タグの追加")
+
+                with gr.Row():
+                    refresh_gallery_btn = gr.Button("🔄 画像一覧を更新")
+
+                gallery = gr.Gallery(
+                    label="画像一覧",
+                    show_label=True,
+                    columns=4,
+                    height="auto"
+                )
+
+                selected_image = gr.State(None)
+
+                with gr.Row():
+                    with gr.Column(scale=2):
+                        tags_textbox = gr.Textbox(
+                            label="タグ（カンマ区切り）",
+                            lines=5,
+                            placeholder="タグを編集してください"
+                        )
+                    with gr.Column(scale=1):
+                        save_tags_btn = gr.Button("💾 タグを保存", variant="primary")
+                        save_result = gr.Textbox(label="保存結果", lines=2, interactive=False)
+
+                gr.Markdown("---")
+                gr.Markdown("### 固有タグ一括追加（将来実装予定）")
+                gr.Markdown("⚠️ 現在は1枚ずつタグを編集してください")
+
+                # イベントハンドラ
+                refresh_gallery_btn.click(
+                    fn=load_tagged_images,
+                    inputs=[],
+                    outputs=[gallery]
+                )
+
+                # 画像選択時にタグを読み込む（簡易実装: 最初の画像のみ）
+                gallery.select(
+                    fn=lambda evt: evt.value if evt else None,
+                    inputs=None,
+                    outputs=[selected_image]
+                )
+
+            # タブ3: 学習・モデル管理
+            with gr.Tab("🤖 学習・モデル管理"):
+                gr.Markdown("### Google Drive連携とモデル管理")
+
+                # Google Drive連携
+                gr.Markdown("#### Google Drive連携")
+                upload_btn = gr.Button("☁️ Google Driveにアップロード", variant="secondary")
+                upload_result = gr.Textbox(label="アップロード結果", lines=3, interactive=False)
+
+                upload_btn.click(
+                    fn=upload_to_google_drive_stub,
+                    inputs=[],
+                    outputs=[upload_result]
+                )
+
+                gr.Markdown("---")
+
+                # Google Colab連携
+                gr.Markdown("#### Google Colab学習")
+                gr.Markdown(
+                    "[📓 Google Colabで学習を開始](https://colab.research.google.com/github/yourusername/NasumisoCreator/blob/main/notebooks/train_lora_nasutomo.ipynb)",
+                    elem_id="colab_link"
+                )
+                gr.Markdown("※ 上記リンクをクリックしてColabノートブックを開き、セルを実行してください")
+
+                gr.Markdown("---")
+
+                # モデル管理
+                gr.Markdown("#### モデル管理")
+                download_btn = gr.Button("⬇️ モデルをダウンロード", variant="secondary")
+                download_result = gr.Textbox(label="ダウンロード結果", lines=3, interactive=False)
+
+                deploy_btn = gr.Button("🚀 Stable Diffusionに配置", variant="primary")
+                deploy_result = gr.Textbox(label="配置結果", lines=3, interactive=False)
+
+                download_btn.click(
+                    fn=download_model_from_drive_stub,
+                    inputs=[],
+                    outputs=[download_result]
+                )
+
+                deploy_btn.click(
+                    fn=deploy_model_to_sd_webui,
+                    inputs=[],
+                    outputs=[deploy_result]
+                )
+
+            # タブ4: 設定
+            with gr.Tab("⚙️ 設定"):
+                gr.Markdown("### アプリケーション設定")
+
+                sd_path_input = gr.Textbox(
+                    label="Stable Diffusion WebUI LoRAモデルパス",
+                    value=config["sd_webui_path"],
+                    placeholder="例: /Users/username/stable-diffusion-webui/models/Lora"
+                )
+
+                training_mode_radio = gr.Radio(
+                    label="学習モード",
+                    choices=["colab", "local"],
+                    value=config["training_mode"],
+                    info="現在はcolabのみサポート（localは将来実装予定）"
+                )
+
+                save_settings_btn = gr.Button("💾 設定を保存", variant="primary")
+                settings_result = gr.Textbox(label="保存結果", lines=2, interactive=False)
+
+                save_settings_btn.click(
+                    fn=save_settings,
+                    inputs=[sd_path_input, training_mode_radio],
+                    outputs=[settings_result]
+                )
+
+        gr.Markdown("---")
+        gr.Markdown("Made with ❤️ for Nasumiso")
+
+    return app
+
+
+if __name__ == "__main__":
+    logger.info("Nasumiso LoRA Training Assistant 起動中...")
+
+    app = create_ui()
+    app.launch(
+        server_name="127.0.0.1",
+        server_port=7861,
+        share=False,
+        show_error=True
+    )

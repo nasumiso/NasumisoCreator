@@ -1,0 +1,11 @@
+{
+  "sd_webui_path": "/Users/username/stable-diffusion-webui/models/Lora",
+  "training_mode": "colab",
+  "default_raw_images_dir": "projects/nasumiso_v1/1_raw_images",
+  "default_processed_dir": "projects/nasumiso_v1/2_processed",
+  "default_tagged_dir": "projects/nasumiso_v1/3_tagged",
+  "default_lora_models_dir": "projects/nasumiso_v1/lora_models",
+  "image_size": 512,
+  "caption_threshold": 0.35,
+  "common_tag": "nasumiso_style"
+}
