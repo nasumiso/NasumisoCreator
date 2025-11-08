@@ -1,0 +1,5 @@
+- Run targeted manual verification: if UI logic changed, activate `.venv` and launch `python app.py` (or `./start_nasumiso_trainer.sh`), then exercise the affected tabs (image prep/tag editing) with sample data inside `projects/nasumiso_v1`.
+- For script changes, rerun the CLI utility on a small fixture directory (e.g., `python scripts/prepare_images.py ...`) and spot-check outputs in `projects/<proj>/2_processed` or `3_tagged`.
+- Confirm `requirements*.txt` or `config.json.example` stay in sync if dependencies/config keys changed.
+- Update documentation (`README.md`, `scripts/README.md`, `.claude/spec` docs) when behavior, options, or workflows shift.
+- When done, deactivate the venv if manually activated (`deactivate`) and stop the Gradio app (`Ctrl+C` or `./stop_nasumiso_trainer.sh`).

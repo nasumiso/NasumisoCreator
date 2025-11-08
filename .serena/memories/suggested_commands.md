@@ -1,0 +1,7 @@
+- Setup env: `python3 -m venv .venv` then `source .venv/bin/activate` and `pip install -r requirements.txt`.
+- Launch Gradio UI (preferred): `./start_nasumiso_trainer.sh` (handles venv activation) or manually `source .venv/bin/activate && python app.py`.
+- Stop UI if port 7861 stuck: `./stop_nasumiso_trainer.sh` (kills processes bound to 7861).
+- Image resize/rename: `python scripts/prepare_images.py --input projects/<proj>/1_raw_images --output projects/<proj>/2_processed --size 512`.
+- Auto caption with WD14: `python scripts/auto_caption.py --input projects/<proj>/2_processed --output projects/<proj>/3_tagged --threshold 0.35`.
+- Append common tag (JP-exclusion aware): `python scripts/add_common_tag.py --input projects/<proj>/3_tagged --tag "nasumiso_style" --exclude-jp`.
+- Copy config template: `cp config.json.example config.json` and edit paths (`sd_webui_path`, dataset dirs, etc.).

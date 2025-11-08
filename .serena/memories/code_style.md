@@ -1,0 +1,6 @@
+- Python modules use UTF-8 headers plus descriptive module docstrings (often bilingual JP/EN) explaining responsibilities.
+- Functions include Google-style Args/Returns sections (in Japanese) and rely on type hints (`Path`, `List`, `Tuple`) plus pathlib for filesystem safety.
+- User-facing text frequently includes emoji/status markers (✅/❌/📁) and Japanese copy; keep this tone consistent.
+- Logging is centralized via `logging` with both file- and stdout handlers; prefer `logger` for errors/exceptions and `try/except` blocks that surface friendly error messages back to the UI.
+- Scripts favor small, pure utility functions (`get_image_files`, `resize_and_crop`) combined inside pipeline helpers; maintainability comes from keeping IO paths configurable and ensuring directories exist before writing.
+- Follow existing naming (snake_case for functions/variables, UPPER_CASE for module constants) and keep dependencies limited to those in `requirements*.txt`. 
