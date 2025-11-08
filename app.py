@@ -17,7 +17,6 @@ from pathlib import Path
 from typing import Dict, Optional
 
 import gradio as gr
-from gradio_client import utils as gradio_client_utils
 
 PROJECT_ROOT = Path(__file__).parent
 DEFAULT_TAGGED_DIR = PROJECT_ROOT / "projects/nasumiso_v1/3_tagged"
@@ -44,28 +43,6 @@ logging.basicConfig(
     ]
 )
 logger = logging.getLogger(__name__)
-
-# ===== グラディオ互換性パッチ =====
-_original_get_type = gradio_client_utils.get_type
-_original_json_schema_to_python_type = (
-    gradio_client_utils._json_schema_to_python_type  # type: ignore[attr-defined]
-)
-
-
-def _safe_get_type(schema):
-    if isinstance(schema, bool):
-        return "object" if schema else "null"
-    return _original_get_type(schema)
-
-
-def _safe_json_schema_to_python_type(schema, defs):
-    if isinstance(schema, bool):
-        return "Any"
-    return _original_json_schema_to_python_type(schema, defs)
-
-
-gradio_client_utils.get_type = _safe_get_type
-gradio_client_utils._json_schema_to_python_type = _safe_json_schema_to_python_type  # type: ignore[attr-defined]
 
 def parse_image_map(json_str: Optional[str]) -> Dict[str, str]:
     """JSON文字列から画像マップを復元"""
