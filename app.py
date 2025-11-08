@@ -6,17 +6,24 @@ Nasumiso LoRA Training Assistant - Gradio WebUI (簡易版)
 なすみそLoRA学習アシスタントツール
 """
 
+import json
 import logging
+import os
 import platform
 import subprocess
 import sys
 from datetime import datetime
 from pathlib import Path
+from typing import Dict, Optional
 
 import gradio as gr
+from gradio_client import utils as gradio_client_utils
+
+PROJECT_ROOT = Path(__file__).parent
+DEFAULT_TAGGED_DIR = PROJECT_ROOT / "projects/nasumiso_v1/3_tagged"
 
 # 既存スクリプトをimport
-sys.path.append(str(Path(__file__).parent))
+sys.path.append(str(PROJECT_ROOT))
 from scripts.prepare_images import resize_and_crop, get_image_files
 from scripts.auto_caption import WD14Tagger
 from scripts.add_common_tag import add_tag_to_file
@@ -37,6 +44,91 @@ logging.basicConfig(
     ]
 )
 logger = logging.getLogger(__name__)
+
+# ===== グラディオ互換性パッチ =====
+_original_get_type = gradio_client_utils.get_type
+_original_json_schema_to_python_type = (
+    gradio_client_utils._json_schema_to_python_type  # type: ignore[attr-defined]
+)
+
+
+def _safe_get_type(schema):
+    if isinstance(schema, bool):
+        return "object" if schema else "null"
+    return _original_get_type(schema)
+
+
+def _safe_json_schema_to_python_type(schema, defs):
+    if isinstance(schema, bool):
+        return "Any"
+    return _original_json_schema_to_python_type(schema, defs)
+
+
+gradio_client_utils.get_type = _safe_get_type
+gradio_client_utils._json_schema_to_python_type = _safe_json_schema_to_python_type  # type: ignore[attr-defined]
+
+def parse_image_map(json_str: Optional[str]) -> Dict[str, str]:
+    """JSON文字列から画像マップを復元"""
+    if not json_str:
+        return {}
+    try:
+        data = json.loads(json_str)
+        if isinstance(data, dict):
+            return {str(k): str(v) for k, v in data.items()}
+    except json.JSONDecodeError:
+        logger.warning("画像マップのJSON解析に失敗しました")
+    return {}
+
+
+def launch_app_with_port_retry(
+    app: gr.Blocks,
+    host: str = "127.0.0.1",
+    preferred_port: int = 7861,
+    max_attempts: int = 20
+):
+    """
+    Gradioのポート競合を検出したら自動で次のポートを試行する
+    """
+    env_port = os.getenv("GRADIO_SERVER_PORT")
+    ports_to_try = []
+
+    if env_port:
+        try:
+            ports_to_try.append(int(env_port))
+        except ValueError:
+            logger.warning(f"GRADIO_SERVER_PORT の値 '{env_port}' を整数として解釈できません")
+
+    ports_to_try.extend(preferred_port + offset for offset in range(max_attempts))
+
+    tried = set()
+    last_error = None
+
+    for port in ports_to_try:
+        if port in tried:
+            continue
+        tried.add(port)
+
+        logger.info(f"Gradioをポート{port}で起動します...")
+        try:
+            app.launch(
+                server_name=host,
+                server_port=port,
+                share=False,
+                show_error=True,
+                show_api=False,
+                inbrowser=True  # ブラウザを自動で開く
+            )
+            return
+        except OSError as e:
+            logger.warning(f"ポート{port}で起動できませんでした: {e}")
+            last_error = e
+            continue
+
+    if last_error:
+        raise RuntimeError(
+            f"❌ 指定ポートでアプリを起動できませんでした: {sorted(tried)}"
+        ) from last_error
+    raise RuntimeError("❌ アプリ起動に必要なポート候補がありません")
 
 
 # ==================== ユーティリティ関数 ====================
@@ -119,6 +211,401 @@ def get_image_info(folder_path: str) -> str:
     except Exception as e:
         logger.exception("画像情報取得でエラー発生")
         return f"❌ エラー: {str(e)}"
+
+
+# ==================== タグ編集ロジック ====================
+
+def resolve_tagged_folder(tagged_folder: str = None) -> Path:
+    """タグ付きフォルダのパスを解決"""
+    if tagged_folder and str(tagged_folder).strip():
+        return Path(tagged_folder).expanduser()
+    return DEFAULT_TAGGED_DIR
+
+
+def resolve_image_path(
+    image_name: str,
+    tagged_folder: str = None,
+    image_map: Optional[Dict[str, str]] = None
+) -> Optional[Path]:
+    """画像名とフォルダ情報から実際のPathを取得"""
+    if not image_name:
+        return None
+
+    if image_map and image_name in image_map:
+        return Path(image_map[image_name])
+
+    folder = resolve_tagged_folder(tagged_folder)
+    return folder / image_name
+
+
+def load_tagged_images(tagged_folder: str = None):
+    """
+    タグ付き画像の一覧を取得
+
+    Args:
+        tagged_folder: タグ付き画像フォルダのパス
+
+    Returns:
+        画像パスのリスト
+    """
+    try:
+        tagged_folder = resolve_tagged_folder(tagged_folder)
+
+        if not tagged_folder.exists():
+            logger.warning(f"タグ付き画像フォルダが存在しません: {tagged_folder}")
+            return []
+
+        # 画像ファイルを取得（_jp.txt は除外）
+        image_extensions = {'.png', '.jpg', '.jpeg', '.PNG', '.JPG', '.JPEG'}
+        image_files = sorted([
+            str(f) for f in tagged_folder.iterdir()
+            if f.is_file() and f.suffix in image_extensions
+        ])
+
+        return image_files
+
+    except Exception as e:
+        logger.exception("画像一覧取得でエラー発生")
+        return []
+
+
+def load_tags_for_image(image_path: str) -> str:
+    """
+    画像に対応するタグファイルを読み込む
+
+    Args:
+        image_path: 画像ファイルのパス
+
+    Returns:
+        タグ文字列（カンマ区切り）
+    """
+    try:
+        if not image_path:
+            return ""
+
+        img_path = Path(image_path)
+        txt_path = img_path.with_suffix('.txt')
+
+        if not txt_path.exists():
+            return ""
+
+        tags = txt_path.read_text(encoding='utf-8').strip()
+        return tags
+
+    except Exception as e:
+        logger.exception(f"タグ読み込みでエラー発生: {image_path}")
+        return f"❌ エラー: {str(e)}"
+
+
+def save_tags_for_image(image_path: str, tags: str) -> str:
+    """
+    画像のタグを保存
+
+    Args:
+        image_path: 画像ファイルのパス
+        tags: タグ文字列（カンマ区切り）
+
+    Returns:
+        結果メッセージ
+    """
+    try:
+        if not image_path:
+            return "❌ 画像が選択されていません"
+
+        img_path = Path(image_path)
+        txt_path = img_path.with_suffix('.txt')
+
+        # タグを保存
+        txt_path.write_text(tags.strip(), encoding='utf-8')
+
+        logger.info(f"タグ保存完了: {txt_path.name}")
+        return f"✅ タグを保存しました: {img_path.name}"
+
+    except Exception as e:
+        logger.exception(f"タグ保存でエラー発生: {image_path}")
+        return f"❌ エラー: {str(e)}"
+
+
+def get_selected_image_info(gallery_images, evt: gr.SelectData):
+    """
+    ギャラリーで選択された画像の情報を取得
+
+    Args:
+        gallery_images: ギャラリーの画像リスト
+        evt: 選択イベント
+
+    Returns:
+        選択された画像のパス、タグ、画像名
+    """
+    try:
+        if not gallery_images or evt.index < 0 or evt.index >= len(gallery_images):
+            return "", "", "📝 画像を選択してください"
+
+        selected_image_path = gallery_images[evt.index]
+        tags = load_tags_for_image(selected_image_path)
+        image_name = Path(selected_image_path).name
+
+        return selected_image_path, tags, f"📝 {image_name} のタグを編集"
+
+    except Exception as e:
+        logger.exception("画像選択でエラー発生")
+        return "", "", "❌ エラーが発生しました"
+
+
+def add_batch_tag(
+    tag_to_add: str,
+    selected_images: list,
+    tagged_folder: str = None,
+    image_map_json: Optional[str] = None
+) -> str:
+    """
+    選択した画像に一括でタグを追加
+
+    Args:
+        tag_to_add: 追加するタグ
+        selected_images: 選択された画像名のリスト
+        tagged_folder: タグ付き画像フォルダ
+        image_map: 画像名とフルパスのマップ
+
+    Returns:
+        結果メッセージ
+    """
+    try:
+        if not tag_to_add or not tag_to_add.strip():
+            return "❌ タグを入力してください"
+
+        if not selected_images:
+            return "❌ 画像を選択してください"
+
+        tag_to_add = tag_to_add.strip()
+        success_count = 0
+
+        image_map = parse_image_map(image_map_json)
+
+        for image_name in selected_images:
+            image_path = resolve_image_path(image_name, tagged_folder, image_map)
+
+            if not image_path or not image_path.exists():
+                continue
+
+            current_tags = load_tags_for_image(str(image_path))
+
+            # タグが既に存在するかチェック
+            tags_list = [t.strip() for t in current_tags.split(',') if t.strip()]
+
+            if tag_to_add not in tags_list:
+                tags_list.append(tag_to_add)
+                new_tags = ', '.join(tags_list)
+                save_tags_for_image(str(image_path), new_tags)
+                success_count += 1
+
+        return f"✅ {success_count}枚の画像に「{tag_to_add}」を追加しました"
+
+    except Exception as e:
+        logger.exception("一括タグ追加でエラー発生")
+        return f"❌ エラー: {str(e)}"
+
+
+def get_initial_image_choices():
+    """
+    タグ付き画像の初期選択肢を取得（UI構築時用）
+
+    Returns:
+        画像名のリスト
+    """
+    try:
+        image_paths = load_tagged_images()
+        if not image_paths:
+            return []
+        # ファイル名のみを返す
+        return [Path(p).name for p in image_paths]
+    except Exception as e:
+        logger.exception("画像選択肢取得でエラー発生")
+        return []
+
+
+def on_image_select(image_name: str, tagged_folder: str = None):
+    """
+    Dropdownで選択された画像の情報を取得
+
+    Args:
+        image_name: 選択された画像名
+
+    Returns:
+        tuple: (画像パスまたは空文字列, タグ文字列)
+    """
+    try:
+        if not image_name:
+            return "", ""
+
+        folder = resolve_tagged_folder(tagged_folder)
+        image_path = folder / image_name
+
+        if not image_path.exists():
+            logger.warning(f"画像が見つかりません: {image_path}")
+            return "", "❌ 画像が見つかりません"
+
+        # タグを読み込む
+        tags = load_tags_for_image(str(image_path))
+
+        return str(image_path), tags
+
+    except Exception as e:
+        logger.exception("画像選択でエラー発生")
+        return "", f"❌ エラー: {str(e)}"
+
+
+def save_current_tags(
+    image_name: str,
+    tags: str,
+    tagged_folder: str = None,
+    image_map_json: Optional[str] = None
+) -> str:
+    """
+    現在選択中の画像のタグを保存
+
+    Args:
+        image_name: 画像名
+        tags: タグ文字列
+
+    Returns:
+        結果メッセージ
+    """
+    try:
+        if not image_name:
+            return "❌ 画像が選択されていません"
+
+        image_map = parse_image_map(image_map_json)
+        image_path = resolve_image_path(image_name, tagged_folder, image_map)
+
+        if not image_path:
+            return "❌ 画像が選択されていません"
+
+        if not image_path.exists():
+            return "❌ 画像が見つかりません"
+
+        # タグを保存
+        result = save_tags_for_image(str(image_path), tags)
+        return result
+
+    except Exception as e:
+        logger.exception("タグ保存でエラー発生")
+        return f"❌ エラー: {str(e)}"
+
+
+def refresh_tag_editor_data(tagged_folder: str):
+    """
+    タグ編集タブのデータを再読み込み
+
+    Args:
+        tagged_folder: タグ付き画像フォルダ
+
+    Returns:
+        Dropdown更新、チェックボックス更新、画像、タグ、見出し、画像マップ、ステータスメッセージ
+    """
+    try:
+        folder = resolve_tagged_folder(tagged_folder)
+        image_paths = load_tagged_images(str(folder))
+        image_map = {Path(p).name: p for p in image_paths}
+        image_names = list(image_map.keys())
+
+        first_name = image_names[0] if image_names else None
+        if first_name:
+            preview = image_map[first_name]
+            tags = load_tags_for_image(preview)
+            header = f"📝 {first_name} のタグを編集"
+            status = f"📁 {len(image_names)}枚の画像を読み込みました"
+        else:
+            preview = None
+            tags = ""
+            header = "📝 画像を選択してください"
+            status = "❗ タグ付き画像が見つかりません"
+
+        image_map_json = json.dumps(image_map, ensure_ascii=False)
+
+        return (
+            gr.update(choices=image_names, value=first_name),
+            gr.update(choices=image_names, value=[]),
+            gr.update(value=preview),
+            gr.update(value=tags),
+            gr.update(value=header),
+            image_map_json,
+            status
+        )
+
+    except Exception as e:
+        logger.exception("タグ一覧再読み込みでエラー発生")
+        return (
+            gr.update(),
+            gr.update(),
+            gr.update(value=None),
+            gr.update(value=""),
+            gr.update(value="❌ エラーが発生しました"),
+            "{}",
+            f"❌ エラー: {str(e)}"
+        )
+
+
+def handle_image_selection(
+    image_name: str,
+    tagged_folder: str,
+    image_map_json: Optional[str]
+):
+    """
+    ドロップダウン変更時にプレビューとタグを更新
+    """
+    try:
+        if not image_name:
+            return (
+                gr.update(value=None),
+                "",
+                "📝 画像を選択してください"
+            )
+
+        image_map = parse_image_map(image_map_json)
+        image_path = resolve_image_path(image_name, tagged_folder, image_map)
+
+        if not image_path or not image_path.exists():
+            return (
+                gr.update(value=None),
+                "",
+                "❌ 画像が見つかりません"
+            )
+
+        tags = load_tags_for_image(str(image_path))
+        header = f"📝 {image_name} のタグを編集"
+        return (
+            gr.update(value=str(image_path)),
+            tags,
+            header
+        )
+
+    except Exception as e:
+        logger.exception("画像選択更新でエラー発生")
+        return (
+            gr.update(value=None),
+            f"❌ エラー: {str(e)}",
+            "❌ エラーが発生しました"
+        )
+
+
+def initialize_ui(input_folder: str):
+    """
+    UI初期化時の処理
+
+    Args:
+        input_folder: デフォルトの入力フォルダ
+
+    Returns:
+        画像情報、画像選択肢（リスト）
+    """
+    # タブ1の画像情報を取得
+    image_info = get_image_info(input_folder)
+
+    # タブ2の画像選択肢を取得
+    image_choices = get_initial_image_choices()
+
+    return image_info, image_choices
 
 
 # ==================== 画像処理ロジック ====================
@@ -365,19 +852,131 @@ def create_ui():
                     outputs=[image_info_output]
                 )
 
-                # イベントハンドラ: 初期ロード時に画像情報を取得
-                app.load(
-                    fn=get_image_info,
-                    inputs=[input_folder],
-                    outputs=[image_info_output]
-                )
-
                 # イベントハンドラ: 変換処理
                 process_btn.click(
                     fn=process_image_pipeline,
                     inputs=[input_folder],
                     outputs=[progress_output]
                 )
+
+            # タブ2: タグ編集
+            with gr.Tab("🏷️ タグ編集"):
+                gr.Markdown("## タグ編集")
+
+                with gr.Row():
+                    tagged_folder_input = gr.Textbox(
+                        label="タグ付き画像フォルダ",
+                        value="projects/nasumiso_v1/3_tagged",
+                        placeholder="projects/nasumiso_v1/3_tagged",
+                        scale=4
+                    )
+                    refresh_tags_btn = gr.Button("🔄 再読み込み", scale=1)
+                    open_tagged_folder_btn = gr.Button("📂 フォルダを開く", scale=1)
+
+                tag_section_header = gr.Markdown("📝 画像を選択してください")
+
+                with gr.Row():
+                    image_dropdown = gr.Dropdown(
+                        label="画像を選択",
+                        choices=[],
+                        value=None,
+                        interactive=True
+                    )
+                    reload_tags_btn = gr.Button("↺ タグ再読み込み")
+
+                with gr.Row():
+                    image_preview = gr.Image(
+                        label="プレビュー",
+                        type="filepath",
+                        interactive=False
+                    )
+                    tag_editor = gr.Textbox(
+                        label="タグ（カンマ区切り）",
+                        lines=10,
+                        placeholder="例: masterpiece, best quality",
+                        show_label=True
+                    )
+
+                save_tags_btn = gr.Button("💾 タグを保存", variant="primary")
+
+                with gr.Accordion("一括タグ操作", open=False):
+                    batch_tag_input = gr.Textbox(
+                        label="追加するタグ",
+                        placeholder="例: nasumiso_style"
+                    )
+                    batch_image_selector = gr.CheckboxGroup(
+                        label="対象画像（複数選択可）",
+                        choices=[],
+                        interactive=True
+                    )
+                    batch_add_btn = gr.Button("➕ タグを一括追加")
+
+                tag_action_status = gr.Markdown("")
+                image_map_state = gr.Textbox(
+                    value="{}",
+                    label="__image_map_state",
+                    visible=False
+                )
+
+                refresh_outputs = [
+                    image_dropdown,
+                    batch_image_selector,
+                    image_preview,
+                    tag_editor,
+                    tag_section_header,
+                    image_map_state,
+                    tag_action_status
+                ]
+
+                refresh_tags_btn.click(
+                    fn=refresh_tag_editor_data,
+                    inputs=[tagged_folder_input],
+                    outputs=refresh_outputs
+                )
+                tagged_folder_input.submit(
+                    fn=refresh_tag_editor_data,
+                    inputs=[tagged_folder_input],
+                    outputs=refresh_outputs
+                )
+                tagged_folder_input.change(
+                    fn=refresh_tag_editor_data,
+                    inputs=[tagged_folder_input],
+                    outputs=refresh_outputs
+                )
+                open_tagged_folder_btn.click(
+                    fn=open_folder_in_explorer,
+                    inputs=[tagged_folder_input],
+                    outputs=None
+                )
+
+                image_dropdown.change(
+                    fn=handle_image_selection,
+                    inputs=[image_dropdown, tagged_folder_input, image_map_state],
+                    outputs=[image_preview, tag_editor, tag_section_header]
+                )
+                reload_tags_btn.click(
+                    fn=handle_image_selection,
+                    inputs=[image_dropdown, tagged_folder_input, image_map_state],
+                    outputs=[image_preview, tag_editor, tag_section_header]
+                )
+
+                save_tags_btn.click(
+                    fn=save_current_tags,
+                    inputs=[image_dropdown, tag_editor, tagged_folder_input, image_map_state],
+                    outputs=[tag_action_status]
+                )
+
+                batch_add_btn.click(
+                    fn=add_batch_tag,
+                    inputs=[batch_tag_input, batch_image_selector, tagged_folder_input, image_map_state],
+                    outputs=[tag_action_status]
+                )
+
+        app.load(
+            fn=refresh_tag_editor_data,
+            inputs=[tagged_folder_input],
+            outputs=refresh_outputs
+        )
 
         gr.Markdown("---")
         gr.Markdown("Made with ❤️ for Nasumiso")
@@ -389,10 +988,4 @@ if __name__ == "__main__":
     logger.info("Nasumiso LoRA Training Assistant 起動中...")
 
     app = create_ui()
-    app.launch(
-        server_name="127.0.0.1",
-        server_port=7861,
-        share=False,
-        show_error=True,
-        inbrowser=True  # ブラウザを自動で開く
-    )
+    launch_app_with_port_retry(app, host="127.0.0.1")
