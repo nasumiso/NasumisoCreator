@@ -329,109 +329,6 @@ def get_selected_image_info(gallery_images, evt: gr.SelectData):
         return "", "", "❌ エラーが発生しました"
 
 
-def add_batch_tag(
-    tag_to_add: str,
-    selected_images: list,
-    tagged_folder: str = None,
-    image_map_json: Optional[str] = None
-) -> str:
-    """
-    選択した画像に一括でタグを追加
-
-    Args:
-        tag_to_add: 追加するタグ
-        selected_images: 選択された画像名のリスト
-        tagged_folder: タグ付き画像フォルダ
-        image_map: 画像名とフルパスのマップ
-
-    Returns:
-        結果メッセージ
-    """
-    try:
-        if not tag_to_add or not tag_to_add.strip():
-            return "❌ タグを入力してください"
-
-        if not selected_images:
-            return "❌ 画像を選択してください"
-
-        tag_to_add = tag_to_add.strip()
-        success_count = 0
-
-        image_map = parse_image_map(image_map_json)
-
-        for image_name in selected_images:
-            image_path = resolve_image_path(image_name, tagged_folder, image_map)
-
-            if not image_path or not image_path.exists():
-                continue
-
-            current_tags = load_tags_for_image(str(image_path))
-
-            # タグが既に存在するかチェック
-            tags_list = [t.strip() for t in current_tags.split(',') if t.strip()]
-
-            if tag_to_add not in tags_list:
-                tags_list.append(tag_to_add)
-                new_tags = ', '.join(tags_list)
-                save_tags_for_image(str(image_path), new_tags)
-                success_count += 1
-
-        return f"✅ {success_count}枚の画像に「{tag_to_add}」を追加しました"
-
-    except Exception as e:
-        logger.exception("一括タグ追加でエラー発生")
-        return f"❌ エラー: {str(e)}"
-
-
-def get_initial_image_choices():
-    """
-    タグ付き画像の初期選択肢を取得（UI構築時用）
-
-    Returns:
-        画像名のリスト
-    """
-    try:
-        image_paths = load_tagged_images()
-        if not image_paths:
-            return []
-        # ファイル名のみを返す
-        return [Path(p).name for p in image_paths]
-    except Exception as e:
-        logger.exception("画像選択肢取得でエラー発生")
-        return []
-
-
-def on_image_select(image_name: str, tagged_folder: str = None):
-    """
-    Dropdownで選択された画像の情報を取得
-
-    Args:
-        image_name: 選択された画像名
-
-    Returns:
-        tuple: (画像パスまたは空文字列, タグ文字列)
-    """
-    try:
-        if not image_name:
-            return "", ""
-
-        folder = resolve_tagged_folder(tagged_folder)
-        image_path = folder / image_name
-
-        if not image_path.exists():
-            logger.warning(f"画像が見つかりません: {image_path}")
-            return "", "❌ 画像が見つかりません"
-
-        # タグを読み込む
-        tags = load_tags_for_image(str(image_path))
-
-        return str(image_path), tags
-
-    except Exception as e:
-        logger.exception("画像選択でエラー発生")
-        return "", f"❌ エラー: {str(e)}"
-
-
 def save_current_tags(
     image_name: str,
     tags: str,
@@ -478,7 +375,7 @@ def refresh_tag_editor_data(tagged_folder: str):
         tagged_folder: タグ付き画像フォルダ
 
     Returns:
-        Dropdown更新、チェックボックス更新、画像、タグ、見出し、画像マップ、ステータスメッセージ
+        Gallery更新、画像パスリスト、画像、タグ、見出し、選択画像名、画像マップ、チェックボックス更新、ステータスメッセージ
     """
     try:
         folder = resolve_tagged_folder(tagged_folder)
@@ -486,14 +383,16 @@ def refresh_tag_editor_data(tagged_folder: str):
         image_map = {Path(p).name: p for p in image_paths}
         image_names = list(image_map.keys())
 
-        first_name = image_names[0] if image_names else None
-        if first_name:
-            preview = image_map[first_name]
-            tags = load_tags_for_image(preview)
+        if image_paths:
+            # 最初の画像を選択
+            first_path = image_paths[0]
+            first_name = Path(first_path).name
+            tags = load_tags_for_image(first_path)
             header = f"📝 {first_name} のタグを編集"
-            status = f"📁 {len(image_names)}枚の画像を読み込みました"
+            status = f"📁 {len(image_paths)}枚の画像を読み込みました"
         else:
-            preview = None
+            first_path = None
+            first_name = ""
             tags = ""
             header = "📝 画像を選択してください"
             status = "❗ タグ付き画像が見つかりません"
@@ -501,88 +400,75 @@ def refresh_tag_editor_data(tagged_folder: str):
         image_map_json = json.dumps(image_map, ensure_ascii=False)
 
         return (
-            gr.update(choices=image_names, value=first_name),
-            gr.update(choices=image_names, value=[]),
-            gr.update(value=preview),
-            gr.update(value=tags),
-            gr.update(value=header),
-            image_map_json,
-            status
+            gr.update(value=image_paths),  # Gallery更新
+            image_paths,  # 画像パスリスト（Stateとして保存）
+            gr.update(value=first_path),  # プレビュー画像
+            gr.update(value=tags),  # タグエディタ
+            gr.update(value=header),  # ヘッダー
+            first_name,  # 選択された画像名
+            image_map_json,  # 画像マップ
+            gr.update(choices=image_names, value=[]),  # チェックボックス
+            gr.update(value=status)  # ステータスメッセージ
         )
 
     except Exception as e:
         logger.exception("タグ一覧再読み込みでエラー発生")
         return (
-            gr.update(),
-            gr.update(),
+            gr.update(value=[]),
+            [],
             gr.update(value=None),
             gr.update(value=""),
             gr.update(value="❌ エラーが発生しました"),
+            "",
             "{}",
-            f"❌ エラー: {str(e)}"
+            gr.update(choices=[], value=[]),
+            gr.update(value=f"❌ エラー: {str(e)}")
         )
 
 
-def handle_image_selection(
-    image_name: str,
-    tagged_folder: str,
-    image_map_json: Optional[str]
+def handle_gallery_selection(
+    gallery_images: list,
+    evt: gr.SelectData
 ):
     """
-    ドロップダウン変更時にプレビューとタグを更新
+    Gallery選択時にプレビューとタグを更新
+
+    Args:
+        gallery_images: Galleryに表示されている画像パスのリスト
+        evt: 選択イベント（evt.indexに選択されたインデックス）
+
+    Returns:
+        tuple: (画像パス, タグ文字列, ヘッダー, 選択された画像名)
     """
     try:
-        if not image_name:
+        if not gallery_images or evt.index < 0 or evt.index >= len(gallery_images):
             return (
-                gr.update(value=None),
+                None,
                 "",
-                "📝 画像を選択してください"
+                "📝 画像を選択してください",
+                ""
             )
 
-        image_map = parse_image_map(image_map_json)
-        image_path = resolve_image_path(image_name, tagged_folder, image_map)
-
-        if not image_path or not image_path.exists():
-            return (
-                gr.update(value=None),
-                "",
-                "❌ 画像が見つかりません"
-            )
-
-        tags = load_tags_for_image(str(image_path))
+        selected_image_path = gallery_images[evt.index]
+        tags = load_tags_for_image(selected_image_path)
+        image_name = Path(selected_image_path).name
         header = f"📝 {image_name} のタグを編集"
+
         return (
-            gr.update(value=str(image_path)),
+            selected_image_path,
             tags,
-            header
+            header,
+            image_name
         )
 
     except Exception as e:
-        logger.exception("画像選択更新でエラー発生")
+        logger.exception("Gallery選択でエラー発生")
         return (
-            gr.update(value=None),
+            None,
             f"❌ エラー: {str(e)}",
-            "❌ エラーが発生しました"
+            "❌ エラーが発生しました",
+            ""
         )
-
-
-def initialize_ui(input_folder: str):
-    """
-    UI初期化時の処理
-
-    Args:
-        input_folder: デフォルトの入力フォルダ
-
-    Returns:
-        画像情報、画像選択肢（リスト）
-    """
-    # タブ1の画像情報を取得
-    image_info = get_image_info(input_folder)
-
-    # タブ2の画像選択肢を取得
-    image_choices = get_initial_image_choices()
-
-    return image_info, image_choices
 
 
 # ==================== 画像処理ロジック ====================
@@ -853,42 +739,60 @@ def create_ui():
                 tag_section_header = gr.Markdown("📝 画像を選択してください")
 
                 with gr.Row():
-                    image_dropdown = gr.Dropdown(
-                        label="画像を選択",
-                        choices=[],
-                        value=None,
-                        interactive=True
-                    )
-                    reload_tags_btn = gr.Button("↺ タグ再読み込み")
+                    # 左側: Galleryでサムネイル表示
+                    with gr.Column(scale=1):
+                        image_gallery = gr.Gallery(
+                            label="画像一覧（クリックで選択）",
+                            value=[],
+                            columns=3,
+                            rows=3,
+                            height="auto",
+                            object_fit="cover",
+                            show_label=True
+                        )
 
-                with gr.Row():
-                    image_preview = gr.Image(
-                        label="プレビュー",
-                        type="filepath",
-                        interactive=False
-                    )
-                    tag_editor = gr.Textbox(
-                        label="タグ（カンマ区切り）",
-                        lines=10,
-                        placeholder="例: masterpiece, best quality",
-                        show_label=True
-                    )
-
-                save_tags_btn = gr.Button("💾 タグを保存", variant="primary")
+                    # 右側: タグ編集エリア
+                    with gr.Column(scale=1):
+                        image_preview = gr.Image(
+                            label="選択中の画像",
+                            type="filepath",
+                            interactive=False,
+                            height=300
+                        )
+                        tag_editor = gr.Textbox(
+                            label="タグ（カンマ区切り）",
+                            lines=8,
+                            placeholder="例: masterpiece, best quality, 1girl, solo",
+                            show_label=True
+                        )
+                        save_tags_btn = gr.Button("💾 タグを保存", variant="primary", size="lg")
 
                 with gr.Accordion("一括タグ操作", open=False):
+                    gr.Markdown("""
+                    ### 使い方
+                    1. 下のチェックボックスで対象画像を複数選択
+                    2. 追加するタグを入力
+                    3. 「一括追加」ボタンをクリック
+                    """)
                     batch_tag_input = gr.Textbox(
                         label="追加するタグ",
                         placeholder="例: nasumiso_style"
                     )
+
                     batch_image_selector = gr.CheckboxGroup(
                         label="対象画像（複数選択可）",
                         choices=[],
-                        interactive=True
+                        value=[],
+                        info="チェックしたすべての画像にタグを追加します"
                     )
-                    batch_add_btn = gr.Button("➕ タグを一括追加")
+
+                    batch_add_btn = gr.Button("➕ 選択した画像にタグを一括追加", variant="secondary", size="lg")
 
                 tag_action_status = gr.Markdown("")
+
+                # Hidden states
+                gallery_images_state = gr.State(value=[])
+                selected_image_name_state = gr.State(value="")
                 image_map_state = gr.Textbox(
                     value="{}",
                     label="__image_map_state",
@@ -896,15 +800,18 @@ def create_ui():
                 )
 
                 refresh_outputs = [
-                    image_dropdown,
-                    batch_image_selector,
+                    image_gallery,
+                    gallery_images_state,
                     image_preview,
                     tag_editor,
                     tag_section_header,
+                    selected_image_name_state,
                     image_map_state,
+                    batch_image_selector,
                     tag_action_status
                 ]
 
+                # イベントハンドラ: フォルダ再読み込み
                 refresh_tags_btn.click(
                     fn=refresh_tag_editor_data,
                     inputs=[tagged_folder_input],
@@ -926,28 +833,55 @@ def create_ui():
                     outputs=None
                 )
 
-                image_dropdown.change(
-                    fn=handle_image_selection,
-                    inputs=[image_dropdown, tagged_folder_input, image_map_state],
-                    outputs=[image_preview, tag_editor, tag_section_header]
-                )
-                reload_tags_btn.click(
-                    fn=handle_image_selection,
-                    inputs=[image_dropdown, tagged_folder_input, image_map_state],
-                    outputs=[image_preview, tag_editor, tag_section_header]
+                # イベントハンドラ: Gallery選択
+                image_gallery.select(
+                    fn=handle_gallery_selection,
+                    inputs=[gallery_images_state],
+                    outputs=[image_preview, tag_editor, tag_section_header, selected_image_name_state]
                 )
 
+                # イベントハンドラ: タグ保存
                 save_tags_btn.click(
                     fn=save_current_tags,
-                    inputs=[image_dropdown, tag_editor, tagged_folder_input, image_map_state],
+                    inputs=[selected_image_name_state, tag_editor, tagged_folder_input, image_map_state],
                     outputs=[tag_action_status]
                 )
 
-                batch_add_btn.click(
-                    fn=add_batch_tag,
-                    inputs=[batch_tag_input, batch_image_selector, tagged_folder_input, image_map_state],
-                    outputs=[tag_action_status]
-                )
+                # TODO: 未実装 - 一括タグ追加機能のイベントハンドラ
+                # 以下のコンポーネントが未定義のためコメントアウト:
+                # - batch_gallery (Gallery)
+                # - batch_selected_indices_state (State)
+                # - update_batch_selection (関数)
+                # - add_batch_tag_from_indices (関数)
+
+                # # イベントハンドラ: 一括タグ追加用のGallery更新とリセット
+                # def reset_batch_selection_and_update_gallery(paths):
+                #     return gr.update(value=paths), [], "💡 一括追加したい画像をクリックして選択してください"
+                #
+                # refresh_tags_btn.click(
+                #     fn=reset_batch_selection_and_update_gallery,
+                #     inputs=[gallery_images_state],
+                #     outputs=[batch_gallery, batch_selected_indices_state, tag_action_status]
+                # )
+                # tagged_folder_input.change(
+                #     fn=reset_batch_selection_and_update_gallery,
+                #     inputs=[gallery_images_state],
+                #     outputs=[batch_gallery, batch_selected_indices_state, tag_action_status]
+                # )
+                #
+                # # イベントハンドラ: 一括操作用Gallery選択（トグル動作）
+                # batch_gallery.select(
+                #     fn=update_batch_selection,
+                #     inputs=[batch_selected_indices_state],
+                #     outputs=[batch_selected_indices_state, tag_action_status]
+                # )
+                #
+                # # イベントハンドラ: 一括タグ追加ボタン
+                # batch_add_btn.click(
+                #     fn=add_batch_tag_from_indices,
+                #     inputs=[batch_tag_input, batch_selected_indices_state, gallery_images_state],
+                #     outputs=[tag_action_status]
+                # )
 
         app.load(
             fn=refresh_tag_editor_data,
