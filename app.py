@@ -664,28 +664,79 @@ def create_ui():
                 3. 共通タグ追加（nasumiso_style）
                 """)
 
-                with gr.Row():
-                    input_folder = gr.Textbox(
-                        label="入力フォルダ",
-                        value="projects/nasumiso_v1/1_raw_images",
-                        placeholder="projects/nasumiso_v1/1_raw_images",
-                        scale=4
-                    )
-                    open_folder_btn = gr.Button("📂 フォルダを開く", scale=1)
+                gr.Markdown("### 入力フォルダ一覧")
 
-                with gr.Accordion("📁 画像ファイル情報", open=False):
-                    image_info_output = gr.Textbox(
+                # テーブルヘッダー
+                with gr.Row():
+                    with gr.Column(scale=5):
+                        gr.Markdown("**フォルダパス**")
+                    with gr.Column(scale=1):
+                        gr.Markdown("**画像枚数**")
+                    with gr.Column(scale=1):
+                        gr.Markdown("**操作**")
+
+                # 行1: メインの入力フォルダ
+                with gr.Row():
+                    input_folder_1 = gr.Textbox(
                         label="",
-                        value="フォルダパスを変更すると画像情報が表示されます",
-                        lines=15,
-                        max_lines=15,
-                        interactive=False,
-                        show_label=False,
-                        autoscroll=False
+                        value="projects/nasumiso_v1/1_raw_images",
+                        placeholder="フォルダパスを入力",
+                        scale=5,
+                        show_label=False
                     )
+                    image_count_btn_1 = gr.Button(
+                        value="-",
+                        scale=1
+                    )
+                    open_btn_1 = gr.Button("📂", scale=1)
 
+                # 行2: 将来用フォルダ
                 with gr.Row():
-                    process_btn = gr.Button("🚀 変換開始", variant="primary", size="lg")
+                    input_folder_2 = gr.Textbox(
+                        label="",
+                        value="",
+                        placeholder="（将来用）フォルダパスを入力",
+                        scale=5,
+                        show_label=False
+                    )
+                    image_count_btn_2 = gr.Button(
+                        value="-",
+                        scale=1
+                    )
+                    open_btn_2 = gr.Button("📂", scale=1)
+
+                # 行3: 将来用フォルダ
+                with gr.Row():
+                    input_folder_3 = gr.Textbox(
+                        label="",
+                        value="",
+                        placeholder="（将来用）フォルダパスを入力",
+                        scale=5,
+                        show_label=False
+                    )
+                    image_count_btn_3 = gr.Button(
+                        value="-",
+                        scale=1
+                    )
+                    open_btn_3 = gr.Button("📂", scale=1)
+
+                # 共通の詳細表示エリア
+                gr.Markdown("---")
+                selected_folder_label = gr.Markdown("📋 **選択中のフォルダ**: なし")
+
+                file_list_display = gr.Textbox(
+                    label="📁 画像ファイル一覧",
+                    value="フォルダの画像枚数をクリックすると、ファイル一覧が表示されます",
+                    lines=12,
+                    max_lines=12,
+                    interactive=False,
+                    autoscroll=False
+                )
+
+                gr.Markdown("---")
+
+                # 変換開始ボタン（全体で1つ）
+                process_btn = gr.Button("🚀 変換開始", variant="primary", size="lg")
 
                 progress_output = gr.Textbox(
                     label="進捗状況",
@@ -694,24 +745,78 @@ def create_ui():
                     interactive=False
                 )
 
+                # イベントハンドラ: フォルダパス変更時（画像枚数ボタンを更新）
+                def update_count_button(path):
+                    if not path or not Path(path).exists():
+                        return gr.update(value="-")
+                    info = get_image_info(path)
+                    count_text = info.split('\n')[0].split(': ')[1] if ': ' in info.split('\n')[0] else "-"
+                    return gr.update(value=count_text)
+
+                input_folder_1.change(
+                    fn=update_count_button,
+                    inputs=[input_folder_1],
+                    outputs=[image_count_btn_1]
+                )
+                input_folder_2.change(
+                    fn=update_count_button,
+                    inputs=[input_folder_2],
+                    outputs=[image_count_btn_2]
+                )
+                input_folder_3.change(
+                    fn=update_count_button,
+                    inputs=[input_folder_3],
+                    outputs=[image_count_btn_3]
+                )
+
+                # イベントハンドラ: 画像枚数ボタンクリック時（詳細情報を表示）
+                def show_file_details(path):
+                    if not path or not Path(path).exists():
+                        return (
+                            "📋 **選択中のフォルダ**: なし",
+                            "フォルダが指定されていません"
+                        )
+                    info = get_image_info(path)
+                    label = f"📋 **選択中のフォルダ**: {path}"
+                    return (label, info)
+
+                image_count_btn_1.click(
+                    fn=show_file_details,
+                    inputs=[input_folder_1],
+                    outputs=[selected_folder_label, file_list_display]
+                )
+                image_count_btn_2.click(
+                    fn=show_file_details,
+                    inputs=[input_folder_2],
+                    outputs=[selected_folder_label, file_list_display]
+                )
+                image_count_btn_3.click(
+                    fn=show_file_details,
+                    inputs=[input_folder_3],
+                    outputs=[selected_folder_label, file_list_display]
+                )
+
                 # イベントハンドラ: フォルダを開く
-                open_folder_btn.click(
+                open_btn_1.click(
                     fn=open_folder_in_explorer,
-                    inputs=[input_folder],
+                    inputs=[input_folder_1],
+                    outputs=None
+                )
+                open_btn_2.click(
+                    fn=open_folder_in_explorer,
+                    inputs=[input_folder_2],
+                    outputs=None
+                )
+                open_btn_3.click(
+                    fn=open_folder_in_explorer,
+                    inputs=[input_folder_3],
                     outputs=None
                 )
 
-                # イベントハンドラ: 画像情報を取得（フォルダパス変更時）
-                input_folder.change(
-                    fn=get_image_info,
-                    inputs=[input_folder],
-                    outputs=[image_info_output]
-                )
-
-                # イベントハンドラ: 変換処理
+                # イベントハンドラ: 変換処理（現在は行1のみ使用）
                 process_btn.click(
                     fn=process_image_pipeline,
-                    inputs=[input_folder],
+                    inputs=[input_folder_1],
                     outputs=[progress_output]
                 )
 
@@ -876,10 +981,15 @@ def create_ui():
             outputs=refresh_outputs
         )
 
+        # 画像準備タブ：行1の初期データ読み込み
         app.load(
-            fn=get_image_info,
-            inputs=[input_folder],
-            outputs=[image_info_output]
+            fn=lambda path: (
+                gr.update(value=get_image_info(path).split('\n')[0].split(': ')[1] if path and Path(path).exists() and ': ' in get_image_info(path).split('\n')[0] else "-"),
+                f"📋 **選択中のフォルダ**: {path}",
+                get_image_info(path) if path and Path(path).exists() else ""
+            ),
+            inputs=[input_folder_1],
+            outputs=[image_count_btn_1, selected_folder_label, file_list_display]
         )
 
         gr.Markdown("---")
