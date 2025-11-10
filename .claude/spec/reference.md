@@ -341,6 +341,96 @@ dir %USERPROFILE%\Documents\stable-diffusion-webui\models\Stable-diffusion\
 
 ---
 
+## Gradio WebUI
+
+### app.py
+
+**機能**: なすみそLoRA学習アシスタントのWebインターフェース
+
+**技術スタック**:
+- **Framework**: Gradio 5.x
+- **Python**: 3.10+
+- **Port**: 7860（自動フォールバック: 7861, 7862, ...）
+
+**起動方法**:
+```bash
+python app.py
+# または
+./start_nasumiso_trainer.sh  # Mac
+start_nasumiso_trainer.bat   # Windows
+```
+
+**UIコンポーネント構成**:
+
+#### タブ1: 画像準備
+- **レイアウト**: テーブル形式（4列: フォルダパス / 画像枚数 / 追加タグ / 操作）
+- **入力フォルダ欄**: 3行（将来の複数フォルダ対応を想定、現在は1行目のみ使用）
+- **画像枚数ボタン**: クリックで詳細情報を表示
+- **追加タグ入力欄**: カンマ区切りで追加タグを指定（例: `chara_nasumiso, 1boy`）
+- **変換ボタン**: パイプライン実行（リサイズ → タグ付け → 共通タグ追加）
+- **進捗表示**: Gradio Progressによるリアルタイム更新
+
+#### タブ2: タグ編集（未実装）
+- 画像一覧表示
+- タグ編集機能
+
+#### タブ3: 学習・モデル管理（未実装）
+- Google Drive連携
+- モデルダウンロード・配置
+
+**主要関数**:
+
+**`process_image_pipeline(input_folder: str, additional_tags: str = "", progress=gr.Progress()) -> str`**
+- 画像前処理パイプラインを実行
+- パラメータ:
+  - `input_folder`: 入力フォルダパス
+  - `additional_tags`: 追加タグ（カンマ区切り）
+  - `progress`: Gradio進捗オブジェクト
+- 処理フロー:
+  1. **ステップ1**: `prepare_images()`で512x512リサイズ・連番リネーム
+  2. **ステップ2**: `auto_caption()`でWD14 Tagger実行（しきい値0.35）
+  3. **ステップ3**: 共通タグ追加
+     - 固定タグ: `nasumiso_style` （常に追加）
+     - 追加タグ: `additional_tags`をカンマ区切りで解析し、各タグを先頭に追加
+- 戻り値: 処理結果メッセージ（完了後に一度だけ表示）
+
+**追加タグ処理ロジック**:
+```python
+# タグリストの作成
+tags_to_add = ["nasumiso_style"]  # 固定タグ
+if additional_tags and additional_tags.strip():
+    # カンマ区切りで分割し、前後の空白を削除
+    extra_tags = [tag.strip() for tag in additional_tags.split(',') if tag.strip()]
+    tags_to_add.extend(extra_tags)
+
+# 各タグを順番に追加
+for tag in tags_to_add:
+    add_tag_to_file(txt_file, tag=tag, position="start", backup=False)
+```
+
+**イベントハンドラ**:
+- フォルダパス変更時: 画像枚数ボタンを更新
+- 画像枚数ボタンクリック時: ファイル一覧を表示
+- フォルダを開くボタンクリック時: エクスプローラー/Finderで開く
+- 変換ボタンクリック時: パイプライン実行
+
+**パフォーマンス**:
+- 15枚の画像処理: 約2〜3分（Mac M1基準）
+- 進捗バー更新頻度: 各画像処理ごとに更新
+
+**エラーハンドリング**:
+- フォルダ不存在エラー: わかりやすいメッセージ表示
+- 処理失敗時: エラー内容を含むメッセージ表示
+- ログ出力: logger（`__main__`）にINFO/WARNING/ERRORレベルで記録
+
+**クロスプラットフォーム対応**:
+- パス操作: `pathlib.Path`を使用（Windows/Mac両対応）
+- フォルダを開く: `subprocess.run`で`open`（Mac）/`explorer`（Windows）を実行
+
+**実装日**: 2025-11-08（基本構造）、2025-11-11（追加タグ機能）
+
+---
+
 ## ドキュメント管理
 
 このファイルはREQ完了時にClaude Codeが更新します。技術仕様を簡潔に記録してください。
