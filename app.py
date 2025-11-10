@@ -464,12 +464,13 @@ def handle_gallery_selection(
 
 # ==================== 画像処理ロジック ====================
 
-def process_image_pipeline(input_folder: str, progress=gr.Progress()) -> str:
+def process_image_pipeline(input_folder: str, additional_tags: str = "", progress=gr.Progress()) -> str:
     """
     画像前処理パイプラインを実行（プログレスバーのみリアルタイム更新）
 
     Args:
         input_folder: 入力フォルダのパス
+        additional_tags: 追加タグ（カンマ区切り）
         progress: Gradio進捗オブジェクト
 
     Returns:
@@ -604,9 +605,17 @@ def process_image_pipeline(input_folder: str, progress=gr.Progress()) -> str:
             add_message("❌ エラー: タグ付けが1枚もできませんでした")
             return "\n".join(output_messages)
 
-        # ==================== ステップ3: 共通タグ追加（nasumiso_style） ====================
+        # ==================== ステップ3: 共通タグ追加（nasumiso_style + 追加タグ） ====================
         logger.info(f"ステップ3開始: add_common_tag ({tagged_dir})")
-        add_message("📝 ステップ3: 共通タグ追加（nasumiso_style）")
+
+        # タグリストの作成（固定タグ + 追加タグ）
+        tags_to_add = ["nasumiso_style"]
+        if additional_tags and additional_tags.strip():
+            # カンマ区切りで分割し、前後の空白を削除
+            extra_tags = [tag.strip() for tag in additional_tags.split(',') if tag.strip()]
+            tags_to_add.extend(extra_tags)
+
+        add_message(f"📝 ステップ3: 共通タグ追加（{', '.join(tags_to_add)}）")
         add_message(f"  対象: {tagged_dir}")
         add_message("")
 
@@ -619,11 +628,13 @@ def process_image_pipeline(input_folder: str, progress=gr.Progress()) -> str:
             progress_ratio = 0.8 + (idx / len(txt_files)) * 0.2
             progress(progress_ratio, desc=f"ステップ3: {idx}/{len(txt_files)}個 共通タグ追加中...")
 
-            added = add_tag_to_file(txt_file, tag="nasumiso_style", position="start", backup=False)
-            if added:
-                added_count += 1
+            # 各タグを順番に追加
+            for tag in tags_to_add:
+                added = add_tag_to_file(txt_file, tag=tag, position="start", backup=False)
+                if added:
+                    added_count += 1
 
-        add_message(f"✅ ステップ3完了: {added_count}個のファイルにタグを追加")
+        add_message(f"✅ ステップ3完了: {added_count}個のタグを追加")
         add_message("")
 
         # 完了メッセージ
@@ -672,6 +683,8 @@ def create_ui():
                         gr.Markdown("**フォルダパス**")
                     with gr.Column(scale=1):
                         gr.Markdown("**画像枚数**")
+                    with gr.Column(scale=2):
+                        gr.Markdown("**追加タグ**")
                     with gr.Column(scale=1):
                         gr.Markdown("**操作**")
 
@@ -688,6 +701,13 @@ def create_ui():
                         value="-",
                         scale=1
                     )
+                    additional_tags_1 = gr.Textbox(
+                        label="",
+                        value="",
+                        placeholder="タグ1, タグ2, ...",
+                        scale=2,
+                        show_label=False
+                    )
                     open_btn_1 = gr.Button("📂", scale=1)
 
                 # 行2: 将来用フォルダ
@@ -703,6 +723,13 @@ def create_ui():
                         value="-",
                         scale=1
                     )
+                    additional_tags_2 = gr.Textbox(
+                        label="",
+                        value="",
+                        placeholder="タグ1, タグ2, ...",
+                        scale=2,
+                        show_label=False
+                    )
                     open_btn_2 = gr.Button("📂", scale=1)
 
                 # 行3: 将来用フォルダ
@@ -717,6 +744,13 @@ def create_ui():
                     image_count_btn_3 = gr.Button(
                         value="-",
                         scale=1
+                    )
+                    additional_tags_3 = gr.Textbox(
+                        label="",
+                        value="",
+                        placeholder="タグ1, タグ2, ...",
+                        scale=2,
+                        show_label=False
                     )
                     open_btn_3 = gr.Button("📂", scale=1)
 
@@ -816,7 +850,7 @@ def create_ui():
                 # イベントハンドラ: 変換処理（現在は行1のみ使用）
                 process_btn.click(
                     fn=process_image_pipeline,
-                    inputs=[input_folder_1],
+                    inputs=[input_folder_1, additional_tags_1],
                     outputs=[progress_output]
                 )
 
