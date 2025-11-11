@@ -20,6 +20,7 @@ import gradio as gr
 
 PROJECT_ROOT = Path(__file__).parent
 DEFAULT_TAGGED_DIR = PROJECT_ROOT / "projects/nasumiso_v1/3_tagged"
+APP_STATE_FILE = PROJECT_ROOT / "app_state.json"
 
 # 既存スクリプトをimport
 sys.path.append(str(PROJECT_ROOT))
@@ -43,6 +44,59 @@ logging.basicConfig(
     ]
 )
 logger = logging.getLogger(__name__)
+
+
+def load_app_state() -> Dict:
+    """
+    アプリケーション状態を読み込む
+    
+    Returns:
+        Dict: アプリケーション状態（存在しない場合はデフォルト値）
+    """
+    default_state = {
+        "image_preparation": {
+            "folder_paths": [
+                "projects/nasumiso_v1/1_raw_images",
+                "",
+                ""
+            ],
+            "additional_tags": [
+                "",
+                "",
+                ""
+            ]
+        },
+        "tag_editor": {
+            "last_tagged_folder": "projects/nasumiso_v1/3_tagged"
+        }
+    }
+    
+    if APP_STATE_FILE.exists():
+        try:
+            with open(APP_STATE_FILE, 'r', encoding='utf-8') as f:
+                state = json.load(f)
+                logger.info(f"アプリ状態を読み込みました: {APP_STATE_FILE}")
+                return state
+        except Exception as e:
+            logger.warning(f"状態ファイル読み込みエラー: {e}")
+            return default_state
+    
+    return default_state
+
+
+def save_app_state(state: Dict) -> None:
+    """
+    アプリケーション状態を保存する
+    
+    Args:
+        state: 保存するアプリケーション状態
+    """
+    try:
+        with open(APP_STATE_FILE, 'w', encoding='utf-8') as f:
+            json.dump(state, f, indent=2, ensure_ascii=False)
+            logger.info(f"アプリ状態を保存しました: {APP_STATE_FILE}")
+    except Exception as e:
+        logger.error(f"状態ファイル保存エラー: {e}")
 
 def parse_image_map(json_str: Optional[str]) -> Dict[str, str]:
     """JSON文字列から画像マップを復元"""
@@ -658,8 +712,134 @@ def process_image_pipeline(input_folder: str, additional_tags: str = "", progres
 
 # ==================== Gradio UI ====================
 
+def select_folder_with_dialog(initial_dir: str = None) -> str:
+    """
+    システム標準のフォルダ選択ダイアログを表示
+    
+    macOS: osascriptを使用
+    その他: tkinterを使用（インストールされている場合）
+    
+    Args:
+        initial_dir: 初期表示ディレクトリ（省略時はプロジェクトルート）
+    
+    Returns:
+        str: 選択されたフォルダパス（キャンセル時は空文字列）
+    """
+    import subprocess
+    import sys
+    
+    try:
+        # 初期ディレクトリの設定
+        if initial_dir and Path(initial_dir).exists():
+            init_path = str(Path(initial_dir).resolve())
+        else:
+            init_path = str(PROJECT_ROOT.resolve())
+        
+        # macOSの場合: osascriptを使用
+        if sys.platform == "darwin":
+            try:
+                # AppleScriptでフォルダ選択ダイアログを表示
+                script = f'''
+                tell application "System Events"
+                    activate
+                    set theFolder to choose folder with prompt "フォルダを選択してください" default location POSIX file "{init_path}"
+                    return POSIX path of theFolder
+                end tell
+                '''
+                
+                result = subprocess.run(
+                    ["osascript", "-e", script],
+                    capture_output=True,
+                    text=True,
+                    timeout=300  # 5分でタイムアウト
+                )
+                
+                if result.returncode == 0:
+                    selected_folder = result.stdout.strip()
+                    if selected_folder:
+                        # 末尾のスラッシュを削除
+                        selected_folder = selected_folder.rstrip('/')
+                        selected_path = Path(selected_folder)
+                        
+                        # プロジェクトルート配下の場合は相対パスに
+                        try:
+                            rel_path = selected_path.relative_to(PROJECT_ROOT)
+                            return str(rel_path)
+                        except ValueError:
+                            # プロジェクトルート外の場合は絶対パスを返す
+                            return str(selected_path)
+                
+                return ""
+            
+            except Exception as e:
+                logger.error(f"osascriptエラー: {e}")
+                return ""
+        
+        # その他のOS: tkinterを試行
+        else:
+            try:
+                import tkinter as tk
+                from tkinter import filedialog
+                
+                root = tk.Tk()
+                root.withdraw()
+                root.attributes('-topmost', True)
+                
+                selected_folder = filedialog.askdirectory(
+                    title="フォルダを選択",
+                    initialdir=init_path
+                )
+                
+                root.destroy()
+                
+                if selected_folder:
+                    selected_path = Path(selected_folder)
+                    try:
+                        rel_path = selected_path.relative_to(PROJECT_ROOT)
+                        return str(rel_path)
+                    except ValueError:
+                        return str(selected_path)
+                
+                return ""
+            
+            except ImportError:
+                logger.error("tkinterがインストールされていません")
+                return ""
+    
+    except Exception as e:
+        logger.error(f"フォルダ選択ダイアログエラー: {e}")
+        return ""
+
+
+
+def save_folder_and_tags_state(folder_1: str, folder_2: str, folder_3: str, 
+                                tags_1: str, tags_2: str, tags_3: str) -> None:
+    """
+    フォルダパスと追加タグを状態ファイルに保存
+    
+    Args:
+        folder_1-3: 各行のフォルダパス
+        tags_1-3: 各行の追加タグ
+    """
+    state = {
+        "image_preparation": {
+            "folder_paths": [folder_1, folder_2, folder_3],
+            "additional_tags": [tags_1, tags_2, tags_3]
+        },
+        "tag_editor": {
+            "last_tagged_folder": "projects/nasumiso_v1/3_tagged"
+        }
+    }
+    save_app_state(state)
+
 def create_ui():
     """Gradio UIを作成"""
+
+    # アプリ状態を読み込み
+    app_state = load_app_state()
+    folder_paths = app_state.get("image_preparation", {}).get("folder_paths", ["projects/nasumiso_v1/1_raw_images", "", ""])
+    additional_tags = app_state.get("image_preparation", {}).get("additional_tags", ["", "", ""])
+    last_tagged_folder = app_state.get("tag_editor", {}).get("last_tagged_folder", "projects/nasumiso_v1/3_tagged")
 
     with gr.Blocks(title="Nasumiso LoRA Training Assistant", theme=gr.themes.Soft()) as app:
         gr.Markdown("# 🎨 Nasumiso LoRA Training Assistant")
@@ -679,7 +859,7 @@ def create_ui():
 
                 # テーブルヘッダー
                 with gr.Row():
-                    with gr.Column(scale=5):
+                    with gr.Column(scale=6):
                         gr.Markdown("**フォルダパス**")
                     with gr.Column(scale=1):
                         gr.Markdown("**画像枚数**")
@@ -690,84 +870,99 @@ def create_ui():
 
                 # 行1: メインの入力フォルダ
                 with gr.Row():
-                    input_folder_1 = gr.Textbox(
-                        label="",
-                        value="projects/nasumiso_v1/1_raw_images",
-                        placeholder="フォルダパスを入力",
-                        scale=5,
-                        show_label=False
-                    )
+                    with gr.Column(scale=5):
+                        input_folder_1_btn = gr.Button(
+                            value=folder_paths[0] or "projects/nasumiso_v1/1_raw_images",
+                            variant="secondary",
+                            size="sm",
+                            elem_classes="folder-path-button"
+                        )
+                        input_folder_1 = gr.Textbox(
+                            label="",
+                            value=folder_paths[0] or "projects/nasumiso_v1/1_raw_images",
+                            visible=False
+                        )
+                    open_btn_1 = gr.Button("📂", scale=1, min_width=40)
                     image_count_btn_1 = gr.Button(
                         value="-",
                         scale=1
                     )
                     additional_tags_1 = gr.Textbox(
                         label="",
-                        value="",
+                        value=additional_tags[0],
                         placeholder="タグ1, タグ2, ...",
                         scale=2,
                         show_label=False
                     )
-                    open_btn_1 = gr.Button("📂", scale=1)
 
                 # 行2: 将来用フォルダ
                 with gr.Row():
-                    input_folder_2 = gr.Textbox(
-                        label="",
-                        value="",
-                        placeholder="（将来用）フォルダパスを入力",
-                        scale=5,
-                        show_label=False
-                    )
+                    with gr.Column(scale=5):
+                        input_folder_2_btn = gr.Button(
+                            value=folder_paths[1] or "クリックしてフォルダを選択",
+                            variant="secondary",
+                            size="sm",
+                            elem_classes="folder-path-button"
+                        )
+                        input_folder_2 = gr.Textbox(
+                            label="",
+                            value=folder_paths[1] or "",
+                            visible=False
+                        )
+                    open_btn_2 = gr.Button("📂", scale=1, min_width=40)
                     image_count_btn_2 = gr.Button(
                         value="-",
                         scale=1
                     )
                     additional_tags_2 = gr.Textbox(
                         label="",
-                        value="",
+                        value=additional_tags[1],
                         placeholder="タグ1, タグ2, ...",
                         scale=2,
                         show_label=False
                     )
-                    open_btn_2 = gr.Button("📂", scale=1)
 
                 # 行3: 将来用フォルダ
                 with gr.Row():
-                    input_folder_3 = gr.Textbox(
-                        label="",
-                        value="",
-                        placeholder="（将来用）フォルダパスを入力",
-                        scale=5,
-                        show_label=False
-                    )
+                    with gr.Column(scale=5):
+                        input_folder_3_btn = gr.Button(
+                            value=folder_paths[2] or "クリックしてフォルダを選択",
+                            variant="secondary",
+                            size="sm",
+                            elem_classes="folder-path-button"
+                        )
+                        input_folder_3 = gr.Textbox(
+                            label="",
+                            value=folder_paths[2] or "",
+                            visible=False
+                        )
+                    open_btn_3 = gr.Button("📂", scale=1, min_width=40)
                     image_count_btn_3 = gr.Button(
                         value="-",
                         scale=1
                     )
                     additional_tags_3 = gr.Textbox(
                         label="",
-                        value="",
+                        value=additional_tags[2],
                         placeholder="タグ1, タグ2, ...",
                         scale=2,
                         show_label=False
                     )
-                    open_btn_3 = gr.Button("📂", scale=1)
 
-                # 共通の詳細表示エリア
-                gr.Markdown("---")
-                selected_folder_label = gr.Markdown("📋 **選択中のフォルダ**: なし")
-
-                file_list_display = gr.Textbox(
-                    label="📁 画像ファイル一覧",
-                    value="フォルダの画像枚数をクリックすると、ファイル一覧が表示されます",
-                    lines=12,
-                    max_lines=12,
-                    interactive=False,
-                    autoscroll=False
-                )
-
-                gr.Markdown("---")
+                # 共通の詳細表示エリア（コメントアウト）
+                # gr.Markdown("---")
+                # selected_folder_label = gr.Markdown("📋 **選択中のフォルダ**: なし")
+                #
+                # file_list_display = gr.Textbox(
+                #     label="📁 画像ファイル一覧",
+                #     value="フォルダの画像枚数をクリックすると、ファイル一覧が表示されます",
+                #     lines=12,
+                #     max_lines=12,
+                #     interactive=False,
+                #     autoscroll=False
+                # )
+                #
+                # gr.Markdown("---")
 
                 # 変換開始ボタン（全体で1つ）
                 process_btn = gr.Button("🚀 変換開始", variant="primary", size="lg")
@@ -776,7 +971,8 @@ def create_ui():
                     label="進捗状況",
                     lines=15,
                     max_lines=20,
-                    interactive=False
+                    interactive=False,
+                    autoscroll=True
                 )
 
                 # イベントハンドラ: フォルダパス変更時（画像枚数ボタンを更新）
@@ -803,31 +999,76 @@ def create_ui():
                     outputs=[image_count_btn_3]
                 )
 
-                # イベントハンドラ: 画像枚数ボタンクリック時（詳細情報を表示）
-                def show_file_details(path):
-                    if not path or not Path(path).exists():
-                        return (
-                            "📋 **選択中のフォルダ**: なし",
-                            "フォルダが指定されていません"
-                        )
-                    info = get_image_info(path)
-                    label = f"📋 **選択中のフォルダ**: {path}"
-                    return (label, info)
+                # イベントハンドラ: 画像枚数ボタンクリック時（詳細情報を表示）- コメントアウト
+                # def show_file_details(path):
+                #     if not path or not Path(path).exists():
+                #         return (
+                #             "📋 **選択中のフォルダ**: なし",
+                #             "フォルダが指定されていません"
+                #         )
+                #     info = get_image_info(path)
+                #     label = f"📋 **選択中のフォルダ**: {path}"
+                #     return (label, info)
+                #
+                # image_count_btn_1.click(
+                #     fn=show_file_details,
+                #     inputs=[input_folder_1],
+                #     outputs=[selected_folder_label, file_list_display]
+                # )
+                # image_count_btn_2.click(
+                #     fn=show_file_details,
+                #     inputs=[input_folder_2],
+                #     outputs=[selected_folder_label, file_list_display]
+                # )
+                # image_count_btn_3.click(
+                #     fn=show_file_details,
+                #     inputs=[input_folder_3],
+                #     outputs=[selected_folder_label, file_list_display]
+                # )
 
-                image_count_btn_1.click(
-                    fn=show_file_details,
+                # イベントハンドラ: フォルダ選択（tkinter版）
+                def browse_folder_1(current_path):
+                    """行1のフォルダ選択"""
+                    selected = select_folder_with_dialog(current_path)
+                    if selected:
+                        logger.info(f"フォルダ選択: {selected} (行1)")
+                        return gr.update(value=selected), gr.update(value=selected)
+                    return gr.update(), gr.update()
+
+                def browse_folder_2(current_path):
+                    """行2のフォルダ選択"""
+                    selected = select_folder_with_dialog(current_path)
+                    if selected:
+                        logger.info(f"フォルダ選択: {selected} (行2)")
+                        return gr.update(value=selected), gr.update(value=selected)
+                    return gr.update(), gr.update()
+
+                def browse_folder_3(current_path):
+                    """行3のフォルダ選択"""
+                    selected = select_folder_with_dialog(current_path)
+                    if selected:
+                        logger.info(f"フォルダ選択: {selected} (行3)")
+                        return gr.update(value=selected), gr.update(value=selected)
+                    return gr.update(), gr.update()
+
+                # イベントハンドラ: フォルダパスボタンクリック時にフォルダ選択
+                input_folder_1_btn.click(
+                    fn=browse_folder_1,
                     inputs=[input_folder_1],
-                    outputs=[selected_folder_label, file_list_display]
+                    outputs=[input_folder_1, input_folder_1_btn],
+                    show_progress=False
                 )
-                image_count_btn_2.click(
-                    fn=show_file_details,
+                input_folder_2_btn.click(
+                    fn=browse_folder_2,
                     inputs=[input_folder_2],
-                    outputs=[selected_folder_label, file_list_display]
+                    outputs=[input_folder_2, input_folder_2_btn],
+                    show_progress=False
                 )
-                image_count_btn_3.click(
-                    fn=show_file_details,
+                input_folder_3_btn.click(
+                    fn=browse_folder_3,
                     inputs=[input_folder_3],
-                    outputs=[selected_folder_label, file_list_display]
+                    outputs=[input_folder_3, input_folder_3_btn],
+                    show_progress=False
                 )
 
                 # イベントハンドラ: フォルダを開く
@@ -847,6 +1088,31 @@ def create_ui():
                     outputs=None
                 )
 
+                # イベントハンドラ: 状態保存（フォルダパスまたはタグ変更時）
+                def save_state_handler(f1, f2, f3, t1, t2, t3):
+                    """フォルダパスと追加タグの変更を保存"""
+                    save_folder_and_tags_state(f1, f2, f3, t1, t2, t3)
+
+                # フォルダパス変更時に状態保存
+                for folder_input in [input_folder_1, input_folder_2, input_folder_3]:
+                    folder_input.change(
+                        fn=save_state_handler,
+                        inputs=[input_folder_1, input_folder_2, input_folder_3,
+                               additional_tags_1, additional_tags_2, additional_tags_3],
+                        outputs=None,
+                        show_progress=False
+                    )
+
+                # 追加タグ変更時に状態保存
+                for tags_input in [additional_tags_1, additional_tags_2, additional_tags_3]:
+                    tags_input.change(
+                        fn=save_state_handler,
+                        inputs=[input_folder_1, input_folder_2, input_folder_3,
+                               additional_tags_1, additional_tags_2, additional_tags_3],
+                        outputs=None,
+                        show_progress=False
+                    )
+
                 # イベントハンドラ: 変換処理（現在は行1のみ使用）
                 process_btn.click(
                     fn=process_image_pipeline,
@@ -861,7 +1127,7 @@ def create_ui():
                 with gr.Row():
                     tagged_folder_input = gr.Textbox(
                         label="タグ付き画像フォルダ",
-                        value="projects/nasumiso_v1/3_tagged",
+                        value=last_tagged_folder,
                         placeholder="projects/nasumiso_v1/3_tagged",
                         scale=4
                     )
@@ -1015,15 +1281,18 @@ def create_ui():
             outputs=refresh_outputs
         )
 
-        # 画像準備タブ：行1の初期データ読み込み
+        # 画像準備タブ：画像枚数の初期化
+        def init_image_counts(path1, path2, path3):
+            """起動時に各フォルダの画像枚数を取得"""
+            count1 = update_count_button(path1)
+            count2 = update_count_button(path2)
+            count3 = update_count_button(path3)
+            return count1, count2, count3
+
         app.load(
-            fn=lambda path: (
-                gr.update(value=get_image_info(path).split('\n')[0].split(': ')[1] if path and Path(path).exists() and ': ' in get_image_info(path).split('\n')[0] else "-"),
-                f"📋 **選択中のフォルダ**: {path}",
-                get_image_info(path) if path and Path(path).exists() else ""
-            ),
-            inputs=[input_folder_1],
-            outputs=[image_count_btn_1, selected_folder_label, file_list_display]
+            fn=init_image_counts,
+            inputs=[input_folder_1, input_folder_2, input_folder_3],
+            outputs=[image_count_btn_1, image_count_btn_2, image_count_btn_3]
         )
 
         gr.Markdown("---")
