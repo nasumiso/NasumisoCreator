@@ -41,6 +41,7 @@ logs/
 config.json
 credentials.json
 token.json
+app_state.json
 
 # 外部ツール（stable-diffusion-webui は別管理）
 stable-diffusion-webui/
