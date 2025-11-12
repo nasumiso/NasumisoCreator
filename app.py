@@ -518,13 +518,17 @@ def handle_gallery_selection(
 
 # ==================== 画像処理ロジック ====================
 
-def process_image_pipeline(input_folder: str, additional_tags: str = "", progress=gr.Progress()) -> str:
+def process_image_pipeline(
+    input_folder_1: str, input_folder_2: str, input_folder_3: str,
+    additional_tags_1: str = "", additional_tags_2: str = "", additional_tags_3: str = "",
+    progress=gr.Progress()
+) -> str:
     """
-    画像前処理パイプラインを実行（プログレスバーのみリアルタイム更新）
+    画像前処理パイプラインを実行（複数フォルダ統合対応）
 
     Args:
-        input_folder: 入力フォルダのパス
-        additional_tags: 追加タグ（カンマ区切り）
+        input_folder_1-3: 入力フォルダのパス（空の場合はスキップ）
+        additional_tags_1-3: 各フォルダの追加タグ（カンマ区切り）
         progress: Gradio進捗オブジェクト
 
     Returns:
@@ -537,14 +541,28 @@ def process_image_pipeline(input_folder: str, additional_tags: str = "", progres
         output_messages.append(msg)
 
     try:
-        input_path = Path(input_folder)
+        # 入力フォルダとタグのペアを収集（空でないもののみ）
+        folder_configs = []
+        for idx, (folder_path, tags) in enumerate([
+            (input_folder_1, additional_tags_1),
+            (input_folder_2, additional_tags_2),
+            (input_folder_3, additional_tags_3)
+        ], start=1):
+            if folder_path and folder_path.strip():
+                path = Path(folder_path)
+                if path.exists() and path.is_dir():
+                    folder_configs.append({
+                        'index': idx,
+                        'path': path,
+                        'tags': tags.strip()
+                    })
+                elif path.exists():
+                    add_message(f"⚠️ フォルダ{idx}: パスがディレクトリではありません: {folder_path}")
+                else:
+                    add_message(f"⚠️ フォルダ{idx}: フォルダが存在しません: {folder_path}")
 
-        # 入力フォルダの存在確認
-        if not input_path.exists():
-            return f"❌ エラー: 入力フォルダが存在しません: {input_folder}"
-
-        if not input_path.is_dir():
-            return f"❌ エラー: 入力パスがディレクトリではありません: {input_folder}"
+        if not folder_configs:
+            return "❌ エラー: 有効な入力フォルダが指定されていません"
 
         # プロジェクトルートを取得
         project_root = Path(__file__).parent
@@ -559,29 +577,40 @@ def process_image_pipeline(input_folder: str, additional_tags: str = "", progres
         add_message("🎨 Nasumiso LoRA Training Assistant - 画像前処理パイプライン")
         add_message("=" * 60)
         add_message("")
+        add_message(f"📁 処理対象フォルダ: {len(folder_configs)}個")
+        for config in folder_configs:
+            add_message(f"  フォルダ{config['index']}: {config['path']}")
+            if config['tags']:
+                add_message(f"    追加タグ: {config['tags']}")
+        add_message("")
 
-        # 画像ファイルを取得
-        image_files = get_image_files(input_path)
-        total_images = len(image_files)
+        # 各フォルダから画像ファイルを収集
+        image_list = []  # [(画像パス, フォルダindex, 追加タグ), ...]
+        for config in folder_configs:
+            folder_images = get_image_files(config['path'])
+            for img_path in folder_images:
+                image_list.append((img_path, config['index'], config['tags']))
+            add_message(f"  フォルダ{config['index']}: {len(folder_images)}枚")
+
+        total_images = len(image_list)
 
         if total_images == 0:
             add_message("❌ エラー: 画像ファイルが見つかりません")
             return "\n".join(output_messages)
 
-        add_message(f"📁 対象画像: {total_images}枚")
+        add_message(f"📊 合計画像数: {total_images}枚")
         add_message("")
 
-        # ==================== ステップ1: 画像のリサイズと連番リネーム ====================
-        logger.info(f"ステップ1開始: prepare_images ({input_path} -> {processed_dir})")
-        add_message("📝 ステップ1: 画像のリサイズと連番リネーム（512x512）")
-        add_message(f"  入力: {input_path}")
+        # ==================== ステップ1: 画像のリサイズと統合連番リネーム ====================
+        logger.info(f"ステップ1開始: prepare_images (統合 -> {processed_dir})")
+        add_message("📝 ステップ1: 画像のリサイズと統合連番リネーム（512x512）")
         add_message(f"  出力: {processed_dir}")
         add_message("")
 
         success_count = 0
         skip_count = 0
 
-        for idx, image_path in enumerate(image_files, start=1):
+        for idx, (image_path, folder_idx, _) in enumerate(image_list, start=1):
             # 進捗バー更新（ステップ1は全体の0〜30%）
             progress_ratio = (idx / total_images) * 0.3
             progress(progress_ratio, desc=f"ステップ1: {idx}/{total_images}枚 リサイズ中...")
@@ -592,15 +621,15 @@ def process_image_pipeline(input_folder: str, additional_tags: str = "", progres
                         img = img.convert('RGB')
 
                     processed = resize_and_crop(img, 512)
-                    output_filename = f"img{idx:03d}.png"
+                    output_filename = f"img{idx-1:03d}.png"  # 0から始まる連番
                     output_path = processed_dir / output_filename
                     processed.save(output_path, 'PNG', optimize=True)
 
-                    add_message(f"  ✓ [{idx}/{total_images}] {image_path.name} → {output_filename}")
+                    add_message(f"  ✓ [{idx}/{total_images}] フォルダ{folder_idx}: {image_path.name} → {output_filename}")
                     success_count += 1
 
             except Exception as e:
-                add_message(f"  ✗ [{idx}/{total_images}] {image_path.name}: エラー - {e}")
+                add_message(f"  ✗ [{idx}/{total_images}] フォルダ{folder_idx}: {image_path.name}: エラー - {e}")
                 skip_count += 1
 
         add_message("")
@@ -659,17 +688,10 @@ def process_image_pipeline(input_folder: str, additional_tags: str = "", progres
             add_message("❌ エラー: タグ付けが1枚もできませんでした")
             return "\n".join(output_messages)
 
-        # ==================== ステップ3: 共通タグ追加（nasumiso_style + 追加タグ） ====================
+        # ==================== ステップ3: 共通タグ + 各フォルダ固有タグ追加 ====================
         logger.info(f"ステップ3開始: add_common_tag ({tagged_dir})")
 
-        # タグリストの作成（固定タグ + 追加タグ）
-        tags_to_add = ["nasumiso_style"]
-        if additional_tags and additional_tags.strip():
-            # カンマ区切りで分割し、前後の空白を削除
-            extra_tags = [tag.strip() for tag in additional_tags.split(',') if tag.strip()]
-            tags_to_add.extend(extra_tags)
-
-        add_message(f"📝 ステップ3: 共通タグ追加（{', '.join(tags_to_add)}）")
+        add_message("📝 ステップ3: 共通タグ + フォルダ固有タグ追加")
         add_message(f"  対象: {tagged_dir}")
         add_message("")
 
@@ -677,10 +699,31 @@ def process_image_pipeline(input_folder: str, additional_tags: str = "", progres
         txt_files = [f for f in txt_files if not f.name.endswith('_jp.txt')]
 
         added_count = 0
-        for idx, txt_file in enumerate(txt_files, start=1):
+        for txt_idx, txt_file in enumerate(txt_files, start=1):
             # 進捗バー更新（ステップ3は全体の80〜100%）
-            progress_ratio = 0.8 + (idx / len(txt_files)) * 0.2
-            progress(progress_ratio, desc=f"ステップ3: {idx}/{len(txt_files)}個 共通タグ追加中...")
+            progress_ratio = 0.8 + (txt_idx / len(txt_files)) * 0.2
+            progress(progress_ratio, desc=f"ステップ3: {txt_idx}/{len(txt_files)}個 共通タグ追加中...")
+
+            # ファイル名から元の画像インデックスを取得（img000.txt → 0）
+            try:
+                img_index = int(txt_file.stem.replace('img', ''))
+            except ValueError:
+                logger.warning(f"ファイル名から番号を抽出できません: {txt_file.name}")
+                continue
+
+            # 対応する元画像の情報を取得
+            if img_index < len(image_list):
+                _, folder_idx, folder_tags = image_list[img_index]
+            else:
+                logger.warning(f"画像インデックス{img_index}が範囲外です")
+                continue
+
+            # タグリストの作成（固定タグ + フォルダ固有タグ）
+            tags_to_add = ["nasumiso_style"]
+            if folder_tags:
+                # カンマ区切りで分割し、前後の空白を削除
+                extra_tags = [tag.strip() for tag in folder_tags.split(',') if tag.strip()]
+                tags_to_add.extend(extra_tags)
 
             # 各タグを順番に追加
             for tag in tags_to_add:
@@ -1113,10 +1156,13 @@ def create_ui():
                         show_progress=False
                     )
 
-                # イベントハンドラ: 変換処理（現在は行1のみ使用）
+                # イベントハンドラ: 変換処理（複数フォルダ対応）
                 process_btn.click(
                     fn=process_image_pipeline,
-                    inputs=[input_folder_1, additional_tags_1],
+                    inputs=[
+                        input_folder_1, input_folder_2, input_folder_3,
+                        additional_tags_1, additional_tags_2, additional_tags_3
+                    ],
                     outputs=[progress_output]
                 )
 
