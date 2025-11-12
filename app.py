@@ -24,11 +24,8 @@ APP_STATE_FILE = PROJECT_ROOT / "app_state.json"
 
 # 既存スクリプトをimport
 sys.path.append(str(PROJECT_ROOT))
-from scripts.prepare_images import resize_and_crop, get_image_files
-from scripts.auto_caption import WD14Tagger
-from scripts.add_common_tag import add_tag_to_file
-from PIL import Image
-import shutil
+from scripts.pipelines.image_preparation import run_image_preparation_pipeline
+from scripts.utils.tag_editor_service import TagEditorService
 
 # ログ設定
 LOG_DIR = Path(__file__).parent / "logs"
@@ -44,6 +41,7 @@ logging.basicConfig(
     ]
 )
 logger = logging.getLogger(__name__)
+tag_editor_service = TagEditorService(DEFAULT_TAGGED_DIR, logger=logger)
 
 
 def load_app_state() -> Dict:
@@ -118,19 +116,6 @@ def save_app_state(state: Dict) -> None:
             logger.info(f"アプリ状態を保存しました: {APP_STATE_FILE}")
     except Exception as e:
         logger.error(f"状態ファイル保存エラー: {e}")
-
-def parse_image_map(json_str: Optional[str]) -> Dict[str, str]:
-    """JSON文字列から画像マップを復元"""
-    if not json_str:
-        return {}
-    try:
-        data = json.loads(json_str)
-        if isinstance(data, dict):
-            return {str(k): str(v) for k, v in data.items()}
-    except json.JSONDecodeError:
-        logger.warning("画像マップのJSON解析に失敗しました")
-    return {}
-
 
 def launch_app_with_port_retry(
     app: gr.Blocks,
@@ -264,146 +249,6 @@ def get_image_info(folder_path: str) -> str:
         logger.exception("画像情報取得でエラー発生")
         return f"❌ エラー: {str(e)}"
 
-
-# ==================== タグ編集ロジック ====================
-
-def resolve_tagged_folder(tagged_folder: str = None) -> Path:
-    """タグ付きフォルダのパスを解決"""
-    if tagged_folder and str(tagged_folder).strip():
-        return Path(tagged_folder).expanduser()
-    return DEFAULT_TAGGED_DIR
-
-
-def resolve_image_path(
-    image_name: str,
-    tagged_folder: str = None,
-    image_map: Optional[Dict[str, str]] = None
-) -> Optional[Path]:
-    """画像名とフォルダ情報から実際のPathを取得"""
-    if not image_name:
-        return None
-
-    if image_map and image_name in image_map:
-        return Path(image_map[image_name])
-
-    folder = resolve_tagged_folder(tagged_folder)
-    return folder / image_name
-
-
-def load_tagged_images(tagged_folder: str = None):
-    """
-    タグ付き画像の一覧を取得
-
-    Args:
-        tagged_folder: タグ付き画像フォルダのパス
-
-    Returns:
-        画像パスのリスト
-    """
-    try:
-        tagged_folder = resolve_tagged_folder(tagged_folder)
-
-        if not tagged_folder.exists():
-            logger.warning(f"タグ付き画像フォルダが存在しません: {tagged_folder}")
-            return []
-
-        # 画像ファイルを取得（_jp.txt は除外）
-        image_extensions = {'.png', '.jpg', '.jpeg', '.PNG', '.JPG', '.JPEG'}
-        image_files = sorted([
-            str(f) for f in tagged_folder.iterdir()
-            if f.is_file() and f.suffix in image_extensions
-        ])
-
-        return image_files
-
-    except Exception as e:
-        logger.exception("画像一覧取得でエラー発生")
-        return []
-
-
-def load_tags_for_image(image_path: str) -> str:
-    """
-    画像に対応するタグファイルを読み込む
-
-    Args:
-        image_path: 画像ファイルのパス
-
-    Returns:
-        タグ文字列（カンマ区切り）
-    """
-    try:
-        if not image_path:
-            return ""
-
-        img_path = Path(image_path)
-        txt_path = img_path.with_suffix('.txt')
-
-        if not txt_path.exists():
-            return ""
-
-        tags = txt_path.read_text(encoding='utf-8').strip()
-        return tags
-
-    except Exception as e:
-        logger.exception(f"タグ読み込みでエラー発生: {image_path}")
-        return f"❌ エラー: {str(e)}"
-
-
-def save_tags_for_image(image_path: str, tags: str) -> str:
-    """
-    画像のタグを保存
-
-    Args:
-        image_path: 画像ファイルのパス
-        tags: タグ文字列（カンマ区切り）
-
-    Returns:
-        結果メッセージ
-    """
-    try:
-        if not image_path:
-            return "❌ 画像が選択されていません"
-
-        img_path = Path(image_path)
-        txt_path = img_path.with_suffix('.txt')
-
-        # タグを保存
-        txt_path.write_text(tags.strip(), encoding='utf-8')
-
-        logger.info(f"タグ保存完了: {txt_path.name}")
-        return f"✅ タグを保存しました: {img_path.name}"
-
-    except Exception as e:
-        logger.exception(f"タグ保存でエラー発生: {image_path}")
-        return f"❌ エラー: {str(e)}"
-
-
-def get_selected_image_info(gallery_images, evt: gr.SelectData):
-    """
-    ギャラリーで選択された画像の情報を取得
-
-    Args:
-        gallery_images: ギャラリーの画像リスト
-        evt: 選択イベント
-
-    Returns:
-        選択された画像のパス、タグ、画像名
-    """
-    try:
-        if not gallery_images or evt.index < 0 or evt.index >= len(gallery_images):
-            return "", "", "📝 画像を選択してください"
-
-        selected_image_path = gallery_images[evt.index]
-        tags = load_tags_for_image(selected_image_path)
-        image_name = Path(selected_image_path).name
-
-        return selected_image_path, tags, f"📝 {image_name} のタグを編集"
-
-    except Exception as e:
-        logger.exception("画像選択でエラー発生")
-        return "", "", "❌ エラーが発生しました"
-
-
 def save_current_tags(
     image_name: str,
     tags: str,
@@ -420,26 +265,12 @@ def save_current_tags(
     Returns:
         結果メッセージ
     """
-    try:
-        if not image_name:
-            return "❌ 画像が選択されていません"
-
-        image_map = parse_image_map(image_map_json)
-        image_path = resolve_image_path(image_name, tagged_folder, image_map)
-
-        if not image_path:
-            return "❌ 画像が選択されていません"
-
-        if not image_path.exists():
-            return "❌ 画像が見つかりません"
-
-        # タグを保存
-        result = save_tags_for_image(str(image_path), tags)
-        return result
-
-    except Exception as e:
-        logger.exception("タグ保存でエラー発生")
-        return f"❌ エラー: {str(e)}"
+    return tag_editor_service.save_current_tags(
+        image_name=image_name,
+        tags=tags,
+        tagged_folder=tagged_folder,
+        image_map_json=image_map_json
+    )
 
 
 def refresh_tag_editor_data(tagged_folder: str):
@@ -452,47 +283,17 @@ def refresh_tag_editor_data(tagged_folder: str):
     Returns:
         Gallery更新、画像パスリスト、タグ、見出し、選択画像名、画像マップ、ステータスメッセージ
     """
-    try:
-        folder = resolve_tagged_folder(tagged_folder)
-        image_paths = load_tagged_images(str(folder))
-        image_map = {Path(p).name: p for p in image_paths}
-
-        if image_paths:
-            # 最初の画像を選択
-            first_path = image_paths[0]
-            first_name = Path(first_path).name
-            tags = load_tags_for_image(first_path)
-            header = f"📝 {first_name} のタグを編集"
-            status = f"📁 {len(image_paths)}枚の画像を読み込みました"
-        else:
-            first_name = ""
-            tags = ""
-            header = "📝 画像を選択してください"
-            status = "❗ タグ付き画像が見つかりません"
-
-        image_map_json = json.dumps(image_map, ensure_ascii=False)
-
-        return (
-            gr.update(value=image_paths, selected_index=0 if image_paths else None),  # Gallery更新（最初の画像を選択）
-            image_paths,  # 画像パスリスト（Stateとして保存）
-            gr.update(value=tags),  # タグエディタ
-            gr.update(value=header),  # ヘッダー
-            first_name,  # 選択された画像名
-            image_map_json,  # 画像マップ
-            gr.update(value=status)  # ステータスメッセージ
-        )
-
-    except Exception as e:
-        logger.exception("タグ一覧再読み込みでエラー発生")
-        return (
-            gr.update(value=[]),
-            [],
-            gr.update(value=""),
-            gr.update(value="❌ エラーが発生しました"),
-            "",
-            "{}",
-            gr.update(value=f"❌ エラー: {str(e)}")
-        )
+    result = tag_editor_service.refresh_tag_editor_data(tagged_folder)
+    image_map_json = json.dumps(result.image_map, ensure_ascii=False)
+    return (
+        gr.update(value=result.image_paths, selected_index=result.selected_index),
+        result.image_paths,
+        gr.update(value=result.tags),
+        gr.update(value=result.header_text),
+        result.selected_image_name,
+        image_map_json,
+        gr.update(value=result.status_text if result.status_text else "")
+    )
 
 
 def handle_gallery_selection(
@@ -509,32 +310,11 @@ def handle_gallery_selection(
     Returns:
         tuple: (タグ文字列, ヘッダー, 選択された画像名)
     """
-    try:
-        if not gallery_images or evt.index < 0 or evt.index >= len(gallery_images):
-            return (
-                "",
-                "📝 画像を選択してください",
-                ""
-            )
-
-        selected_image_path = gallery_images[evt.index]
-        tags = load_tags_for_image(selected_image_path)
-        image_name = Path(selected_image_path).name
-        header = f"📝 {image_name} のタグを編集"
-
-        return (
-            tags,
-            header,
-            image_name
-        )
-
-    except Exception as e:
-        logger.exception("Gallery選択でエラー発生")
-        return (
-            f"❌ エラー: {str(e)}",
-            "❌ エラーが発生しました",
-            ""
-        )
+    result = tag_editor_service.handle_gallery_selection(
+        gallery_images=gallery_images,
+        selected_index=getattr(evt, "index", None)
+    )
+    return result.as_tuple()
 
 
 # ==================== 画像処理ロジック ====================
@@ -545,230 +325,13 @@ def process_image_pipeline(
 ) -> str:
     """
     画像前処理パイプラインを実行（複数フォルダ統合対応）
-
-    Args:
-        folders: [{"path": str, "tags": str}, ...] 形式のフォルダリスト
-        progress: Gradio進捗オブジェクト
-
-    Returns:
-        処理結果のメッセージ（完了後に一度だけ表示）
     """
-    output_messages = []
-
-    def add_message(msg):
-        """メッセージを追加"""
-        output_messages.append(msg)
-
-    try:
-        # 入力フォルダとタグのペアを収集（空でないもののみ）
-        folder_configs = []
-        for idx, folder_dict in enumerate(folders, start=1):
-            folder_path = folder_dict.get("path", "").strip()
-            tags = folder_dict.get("tags", "").strip()
-            
-            if folder_path:
-                path = Path(folder_path)
-                if path.exists() and path.is_dir():
-                    folder_configs.append({
-                        'index': idx,
-                        'path': path,
-                        'tags': tags
-                    })
-                elif path.exists():
-                    add_message(f"⚠️ フォルダ{idx}: パスがディレクトリではありません: {folder_path}")
-                else:
-                    add_message(f"⚠️ フォルダ{idx}: フォルダが存在しません: {folder_path}")
-
-        if not folder_configs:
-            return "❌ エラー: 有効な入力フォルダが指定されていません"
-
-        # プロジェクトルートを取得
-        project_root = Path(__file__).parent
-        processed_dir = project_root / "projects/nasumiso_v1/2_processed"
-        tagged_dir = project_root / "projects/nasumiso_v1/3_tagged"
-
-        # 出力ディレクトリ作成
-        processed_dir.mkdir(parents=True, exist_ok=True)
-        tagged_dir.mkdir(parents=True, exist_ok=True)
-
-        add_message("=" * 60)
-        add_message("🎨 Nasumiso LoRA Training Assistant - 画像前処理パイプライン")
-        add_message("=" * 60)
-        add_message("")
-        add_message(f"📁 処理対象フォルダ: {len(folder_configs)}個")
-        for config in folder_configs:
-            add_message(f"  フォルダ{config['index']}: {config['path']}")
-            if config['tags']:
-                add_message(f"    追加タグ: {config['tags']}")
-        add_message("")
-
-        # 各フォルダから画像ファイルを収集
-        image_list = []  # [(画像パス, フォルダindex, 追加タグ), ...]
-        for config in folder_configs:
-            folder_images = get_image_files(config['path'])
-            for img_path in folder_images:
-                image_list.append((img_path, config['index'], config['tags']))
-            add_message(f"  フォルダ{config['index']}: {len(folder_images)}枚")
-
-        total_images = len(image_list)
-
-        if total_images == 0:
-            add_message("❌ エラー: 画像ファイルが見つかりません")
-            return "\n".join(output_messages)
-
-        add_message(f"📊 合計画像数: {total_images}枚")
-        add_message("")
-
-        # ==================== ステップ1: 画像のリサイズと統合連番リネーム ====================
-        logger.info(f"ステップ1開始: prepare_images (統合 -> {processed_dir})")
-        add_message("📝 ステップ1: 画像のリサイズと統合連番リネーム（512x512）")
-        add_message(f"  出力: {processed_dir}")
-        add_message("")
-
-        success_count = 0
-        skip_count = 0
-
-        for idx, (image_path, folder_idx, _) in enumerate(image_list, start=1):
-            # 進捗バー更新（ステップ1は全体の0〜30%）
-            progress_ratio = (idx / total_images) * 0.3
-            progress(progress_ratio, desc=f"ステップ1: {idx}/{total_images}枚 リサイズ中...")
-
-            try:
-                with Image.open(image_path) as img:
-                    if img.mode not in ('RGB', 'RGBA'):
-                        img = img.convert('RGB')
-
-                    processed = resize_and_crop(img, 512)
-                    output_filename = f"img{idx-1:03d}.png"  # 0から始まる連番
-                    output_path = processed_dir / output_filename
-                    processed.save(output_path, 'PNG', optimize=True)
-
-                    add_message(f"  ✓ [{idx}/{total_images}] フォルダ{folder_idx}: {image_path.name} → {output_filename}")
-                    success_count += 1
-
-            except Exception as e:
-                add_message(f"  ✗ [{idx}/{total_images}] フォルダ{folder_idx}: {image_path.name}: エラー - {e}")
-                skip_count += 1
-
-        add_message("")
-        add_message(f"✅ ステップ1完了: {success_count}枚成功, {skip_count}枚スキップ")
-        add_message("")
-
-        if success_count == 0:
-            add_message("❌ エラー: 画像が1枚も処理できませんでした")
-            return "\n".join(output_messages)
-
-        # ==================== ステップ2: WD14 Taggerで自動タグ付け ====================
-        logger.info(f"ステップ2開始: auto_caption ({processed_dir} -> {tagged_dir})")
-        add_message("📝 ステップ2: WD14 Taggerで自動タグ付け（しきい値: 0.35）")
-        add_message(f"  入力: {processed_dir}")
-        add_message(f"  出力: {tagged_dir}")
-        add_message("")
-
-        # WD14 Taggerを初期化
-        add_message("  モデルをロード中...")
-        tagger = WD14Tagger(threshold=0.35, use_coreml=False)
-        add_message("  ✓ モデルロード完了")
-        add_message("")
-
-        # 処理済み画像を取得
-        processed_images = get_image_files(processed_dir)
-        success_count2 = 0
-        skip_count2 = 0
-
-        for idx, image_path in enumerate(processed_images, start=1):
-            # 進捗バー更新（ステップ2は全体の30〜80%）
-            progress_ratio = 0.3 + (idx / len(processed_images)) * 0.5
-            progress(progress_ratio, desc=f"ステップ2: {idx}/{len(processed_images)}枚 タグ付け中...")
-
-            try:
-                tags = tagger.predict_tags_only(image_path)
-                tag_string = ", ".join(tags)
-
-                output_image = tagged_dir / image_path.name
-                output_txt = tagged_dir / f"{image_path.stem}.txt"
-
-                shutil.copy2(image_path, output_image)
-                output_txt.write_text(tag_string, encoding="utf-8")
-
-                add_message(f"  ✓ [{idx}/{len(processed_images)}] {image_path.name} ({len(tags)}個のタグ)")
-                success_count2 += 1
-
-            except Exception as e:
-                add_message(f"  ✗ [{idx}/{len(processed_images)}] {image_path.name}: エラー - {e}")
-                skip_count2 += 1
-
-        add_message("")
-        add_message(f"✅ ステップ2完了: {success_count2}枚成功, {skip_count2}枚スキップ")
-        add_message("")
-
-        if success_count2 == 0:
-            add_message("❌ エラー: タグ付けが1枚もできませんでした")
-            return "\n".join(output_messages)
-
-        # ==================== ステップ3: 共通タグ + 各フォルダ固有タグ追加 ====================
-        logger.info(f"ステップ3開始: add_common_tag ({tagged_dir})")
-
-        add_message("📝 ステップ3: 共通タグ + フォルダ固有タグ追加")
-        add_message(f"  対象: {tagged_dir}")
-        add_message("")
-
-        txt_files = sorted(tagged_dir.glob('*.txt'))
-        txt_files = [f for f in txt_files if not f.name.endswith('_jp.txt')]
-
-        added_count = 0
-        for txt_idx, txt_file in enumerate(txt_files, start=1):
-            # 進捗バー更新（ステップ3は全体の80〜100%）
-            progress_ratio = 0.8 + (txt_idx / len(txt_files)) * 0.2
-            progress(progress_ratio, desc=f"ステップ3: {txt_idx}/{len(txt_files)}個 共通タグ追加中...")
-
-            # ファイル名から元の画像インデックスを取得（img000.txt → 0）
-            try:
-                img_index = int(txt_file.stem.replace('img', ''))
-            except ValueError:
-                logger.warning(f"ファイル名から番号を抽出できません: {txt_file.name}")
-                continue
-
-            # 対応する元画像の情報を取得
-            if img_index < len(image_list):
-                _, folder_idx, folder_tags = image_list[img_index]
-            else:
-                logger.warning(f"画像インデックス{img_index}が範囲外です")
-                continue
-
-            # タグリストの作成（固定タグ + フォルダ固有タグ）
-            tags_to_add = ["nasumiso_style"]
-            if folder_tags:
-                # カンマ区切りで分割し、前後の空白を削除
-                extra_tags = [tag.strip() for tag in folder_tags.split(',') if tag.strip()]
-                tags_to_add.extend(extra_tags)
-
-            # 各タグを順番に追加
-            for tag in tags_to_add:
-                added = add_tag_to_file(txt_file, tag=tag, position="start", backup=False)
-                if added:
-                    added_count += 1
-
-        add_message(f"✅ ステップ3完了: {added_count}個のタグを追加")
-        add_message("")
-
-        # 完了メッセージ
-        progress(1.0, desc="完了!")
-        add_message("=" * 60)
-        add_message("🎉 パイプライン完了！")
-        add_message(f"📁 出力フォルダ: {tagged_dir}")
-        add_message(f"📊 処理結果: {success_count2}枚の画像を処理しました")
-        add_message("=" * 60)
-
-        logger.info("画像前処理パイプライン完了")
-
-        return "\n".join(output_messages)
-
-    except Exception as e:
-        logger.exception("画像処理パイプラインでエラー発生")
-        add_message("")
-        add_message(f"❌ エラーが発生しました: {str(e)}")
-        return "\n".join(output_messages)
+    return run_image_preparation_pipeline(
+        folders=folders,
+        project_root=PROJECT_ROOT,
+        progress=progress,
+        logger=logger
+    )
 
 
 # ==================== Gradio UI ====================
