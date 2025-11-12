@@ -25,6 +25,7 @@ APP_STATE_FILE = PROJECT_ROOT / "app_state.json"
 # 既存スクリプトをimport
 sys.path.append(str(PROJECT_ROOT))
 from scripts.pipelines.image_preparation import run_image_preparation_pipeline
+from scripts.utils.app_state import FolderEntry, load_app_state, save_app_state
 from scripts.utils.tag_editor_service import TagEditorService
 
 # ログ設定
@@ -43,79 +44,6 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 tag_editor_service = TagEditorService(DEFAULT_TAGGED_DIR, logger=logger)
 
-
-def load_app_state() -> Dict:
-    """
-    アプリケーション状態を読み込む
-    
-    Returns:
-        Dict: アプリケーション状態（存在しない場合はデフォルト値）
-    """
-    default_state = {
-        "image_preparation": {
-            "folders": [
-                {
-                    "path": "",
-                    "tags": ""
-                }
-            ]
-        },
-        "tag_editor": {
-            "last_tagged_folder": "projects/nasumiso_v1/3_tagged"
-        }
-    }
-    
-    if APP_STATE_FILE.exists():
-        try:
-            with open(APP_STATE_FILE, 'r', encoding='utf-8') as f:
-                state = json.load(f)
-                logger.info(f"アプリ状態を読み込みました: {APP_STATE_FILE}")
-                
-                # 古い形式からの移行処理
-                if "image_preparation" in state:
-                    prep = state["image_preparation"]
-                    # 古い形式（folder_paths/additional_tags）の場合は新形式に変換
-                    if "folder_paths" in prep and "additional_tags" in prep:
-                        folders = []
-                        paths = prep.get("folder_paths", [])
-                        tags = prep.get("additional_tags", [])
-                        for i in range(max(len(paths), len(tags))):
-                            path = paths[i] if i < len(paths) else ""
-                            tag = tags[i] if i < len(tags) else ""
-                            if path or tag:  # 空でない行のみ保持
-                                folders.append({"path": path, "tags": tag})
-                        
-                        if not folders:  # 全て空の場合は1行追加
-                            folders = [{"path": "", "tags": ""}]
-                        
-                        state["image_preparation"]["folders"] = folders
-                        # 古いキーを削除
-                        del state["image_preparation"]["folder_paths"]
-                        del state["image_preparation"]["additional_tags"]
-                        # 新形式で保存
-                        save_app_state(state)
-                
-                return state
-        except Exception as e:
-            logger.warning(f"状態ファイル読み込みエラー: {e}")
-            return default_state
-    
-    return default_state
-
-
-def save_app_state(state: Dict) -> None:
-    """
-    アプリケーション状態を保存する
-    
-    Args:
-        state: 保存するアプリケーション状態
-    """
-    try:
-        with open(APP_STATE_FILE, 'w', encoding='utf-8') as f:
-            json.dump(state, f, indent=2, ensure_ascii=False)
-            logger.info(f"アプリ状態を保存しました: {APP_STATE_FILE}")
-    except Exception as e:
-        logger.error(f"状態ファイル保存エラー: {e}")
 
 def launch_app_with_port_retry(
     app: gr.Blocks,
@@ -443,17 +371,24 @@ def save_folder_and_tags_state(folders: list) -> None:
     Args:
         folders: [{"path": str, "tags": str}, ...] 形式のリスト
     """
-    current_state = load_app_state()
-    current_state["image_preparation"]["folders"] = folders
-    save_app_state(current_state)
+    current_state = load_app_state(APP_STATE_FILE, logger=logger)
+    folder_entries = [
+        FolderEntry(
+            path=str(folder.get("path", "") or ""),
+            tags=str(folder.get("tags", "") or "")
+        )
+        for folder in folders
+    ] or [FolderEntry()]
+    current_state.image_preparation.folders = folder_entries
+    save_app_state(current_state, APP_STATE_FILE, logger=logger)
 
 def create_ui():
     """Gradio UIを作成"""
 
     # アプリ状態を読み込み
-    app_state = load_app_state()
-    initial_folders = app_state.get("image_preparation", {}).get("folders", [{"path": "", "tags": ""}])
-    last_tagged_folder = app_state.get("tag_editor", {}).get("last_tagged_folder", "projects/nasumiso_v1/3_tagged")
+    app_state = load_app_state(APP_STATE_FILE, logger=logger)
+    initial_folders = [folder.to_dict() for folder in app_state.image_preparation.folders]
+    last_tagged_folder = app_state.tag_editor.last_tagged_folder
 
     MAX_FOLDERS = 5  # 最大フォルダ数
 
