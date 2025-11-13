@@ -777,28 +777,6 @@ def create_ui():
                         )
                         save_tags_btn = gr.Button("💾 タグを保存", variant="primary", size="lg")
 
-                # TODO: 一括タグ操作機能（未実装）
-                # with gr.Accordion("一括タグ操作", open=False):
-                #     gr.Markdown("""
-                #     ### 使い方
-                #     1. 下のチェックボックスで対象画像を複数選択
-                #     2. 追加するタグを入力
-                #     3. 「一括追加」ボタンをクリック
-                #     """)
-                #     batch_tag_input = gr.Textbox(
-                #         label="追加するタグ",
-                #         placeholder="例: nasumiso_style"
-                #     )
-                #
-                #     batch_image_selector = gr.CheckboxGroup(
-                #         label="対象画像（複数選択可）",
-                #         choices=[],
-                #         value=[],
-                #         info="チェックしたすべての画像にタグを追加します"
-                #     )
-                #
-                #     batch_add_btn = gr.Button("➕ 選択した画像にタグを一括追加", variant="secondary", size="lg")
-
                 tag_action_status = gr.Markdown("")
 
                 # Hidden states
@@ -855,42 +833,6 @@ def create_ui():
                     inputs=[selected_image_name_state, tag_editor, tagged_folder_input, image_map_state],
                     outputs=[tag_action_status]
                 )
-
-                # TODO: 未実装 - 一括タグ追加機能のイベントハンドラ
-                # 以下のコンポーネントが未定義のためコメントアウト:
-                # - batch_gallery (Gallery)
-                # - batch_selected_indices_state (State)
-                # - update_batch_selection (関数)
-                # - add_batch_tag_from_indices (関数)
-
-                # # イベントハンドラ: 一括タグ追加用のGallery更新とリセット
-                # def reset_batch_selection_and_update_gallery(paths):
-                #     return gr.update(value=paths), [], "💡 一括追加したい画像をクリックして選択してください"
-                #
-                # refresh_tags_btn.click(
-                #     fn=reset_batch_selection_and_update_gallery,
-                #     inputs=[gallery_images_state],
-                #     outputs=[batch_gallery, batch_selected_indices_state, tag_action_status]
-                # )
-                # tagged_folder_input.change(
-                #     fn=reset_batch_selection_and_update_gallery,
-                #     inputs=[gallery_images_state],
-                #     outputs=[batch_gallery, batch_selected_indices_state, tag_action_status]
-                # )
-                #
-                # # イベントハンドラ: 一括操作用Gallery選択（トグル動作）
-                # batch_gallery.select(
-                #     fn=update_batch_selection,
-                #     inputs=[batch_selected_indices_state],
-                #     outputs=[batch_selected_indices_state, tag_action_status]
-                # )
-                #
-                # # イベントハンドラ: 一括タグ追加ボタン
-                # batch_add_btn.click(
-                #     fn=add_batch_tag_from_indices,
-                #     inputs=[batch_tag_input, batch_selected_indices_state, gallery_images_state],
-                #     outputs=[tag_action_status]
-                # )
 
         # アプリロード時の初期化
         app.load(
