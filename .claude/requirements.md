@@ -1,5 +1,29 @@
 # 作業指示書
 
+• 優先リファクタ
+
+      1. タグ編集ロジックのサービス化（app.py:289-515）
+         resolve_tagged_folder〜handle_gallery_selection を scripts/tagging/tag_editor_service.py のクラス
+         へ集約し、フォルダ解決・タグ読書き・Gallery応答を UI から切り離す。Gradio ハンドラ登録が単純化し、
+         同ロジックを CLI でも再利用しやすくなる。
+      2. 画像前処理パイプラインの分離（app.py:520-752）
+         process_image_pipeline を scripts/pipelines/image_preparation.py に移し、メッセージや集計結果を構
+         造体で返す設計に変更。長大な処理フローを UI から外すことで app.py の肥大を大幅に抑え、スクリプト群
+         （scripts/prepare_images.py など）と同列で管理できる。
+      3. アプリ状態管理ヘルパーの専用化（app.py:48-114）
+         load_app_state・save_app_state・save_folder_and_tags_state と定数を scripts/utils/app_state.py に
+         切り出し、dataclass ベースの API (AppState.load()/save()) へ。タブ間共有データの出入り口を一本化
+         し、後続の UI 分割でも状態処理を触らずに済む。
+      4. ファイル／ダイアログ系ユーティリティ整理（app.py:160-286, app.py:757-853）
+         open_folder_in_explorer, get_image_info, select_folder_with_dialog を scripts/utils/fs_ops.py に移
+         し、FolderService.open() / .pick() のような薄いラッパーにする。プラットフォーム分岐を一箇所で管理
+         でき、UI 側のコールバック実装がさらに簡潔になる。
+      5. Gradio タブビルダーの分割（app.py:877-1346）
+         コアロジックをサービス化できた段階で、create_ui をタブ単位のビルダー（例: scripts/ui/tabs/
+         image_preparation.py, .../tag_editor.py）へ分離。app.py はサービス生成とタブ組み立てを orchestrate
+         するだけとなり、将来のタブ追加・変更も局所化できる。
+         
+
 ## 📋 未着手
 
 （なし）
