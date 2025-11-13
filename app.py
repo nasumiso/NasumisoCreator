@@ -247,6 +247,50 @@ def handle_gallery_selection(
 
 # ==================== 画像処理ロジック ====================
 
+def clear_output_folders() -> str:
+    """
+    2_processedと3_taggedフォルダをクリアする
+
+    Returns:
+        結果メッセージ
+    """
+    try:
+        processed_dir = PROJECT_ROOT / "projects/nasumiso_v1/2_processed"
+        tagged_dir = PROJECT_ROOT / "projects/nasumiso_v1/3_tagged"
+
+        messages = []
+        messages.append("🗑️ 出力フォルダをクリアしています...")
+        messages.append("")
+
+        # 2_processedをクリア
+        if processed_dir.exists():
+            import shutil
+            shutil.rmtree(processed_dir)
+            processed_dir.mkdir(parents=True, exist_ok=True)
+            messages.append(f"✅ {processed_dir.name}/ をクリアしました")
+        else:
+            messages.append(f"ℹ️ {processed_dir.name}/ は存在しません")
+
+        # 3_taggedをクリア
+        if tagged_dir.exists():
+            import shutil
+            shutil.rmtree(tagged_dir)
+            tagged_dir.mkdir(parents=True, exist_ok=True)
+            messages.append(f"✅ {tagged_dir.name}/ をクリアしました")
+        else:
+            messages.append(f"ℹ️ {tagged_dir.name}/ は存在しません")
+
+        messages.append("")
+        messages.append("✨ 出力フォルダのクリアが完了しました")
+
+        logger.info("出力フォルダをクリアしました")
+        return "\n".join(messages)
+
+    except Exception as e:
+        logger.exception("出力フォルダクリアでエラー発生")
+        return f"❌ エラー: {str(e)}"
+
+
 def process_image_pipeline(
     folders: list,
     progress=gr.Progress()
@@ -470,8 +514,12 @@ def create_ui():
                     visible=len(initial_folders) < MAX_FOLDERS
                 )
 
-                # 変換開始ボタン
-                process_btn = gr.Button("🚀 変換開始", variant="primary", size="lg")
+                # 出力フォルダクリアボタン
+                gr.Markdown("---")
+                gr.Markdown("### 変換処理")
+                with gr.Row():
+                    clear_btn = gr.Button("🗑️ 出力フォルダをクリア", variant="stop", size="sm", scale=1)
+                    process_btn = gr.Button("🚀 変換開始", variant="primary", size="lg", scale=3)
 
                 progress_output = gr.Textbox(
                     label="進捗状況",
@@ -651,6 +699,13 @@ def create_ui():
                         outputs=[folders_state],
                         show_progress=False
                     )
+
+                # 出力フォルダクリア
+                clear_btn.click(
+                    fn=clear_output_folders,
+                    inputs=None,
+                    outputs=[progress_output]
+                )
 
                 # 変換処理
                 process_btn.click(

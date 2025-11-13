@@ -106,6 +106,7 @@ def run_image_preparation_pipeline(
 
         success_count = 0
         skip_count = 0
+        processed_output_paths = []  # ステップ1で生成したファイルパスを記録
         for idx, (image_path, folder_idx, _) in enumerate(image_list, start=1):
             progress_ratio = (idx / total_images) * 0.3
             update_progress(progress_ratio, desc=f"ステップ1: {idx}/{total_images}枚 リサイズ中...")
@@ -118,6 +119,7 @@ def run_image_preparation_pipeline(
                     output_path = processed_dir / output_filename
                     processed.save(output_path, "PNG", optimize=True)
                     add_message(f"  ✓ [{idx}/{total_images}] フォルダ{folder_idx}: {image_path.name} → {output_filename}")
+                    processed_output_paths.append(output_path)  # 成功したファイルを記録
                     success_count += 1
             except Exception as exc:  # pylint: disable=broad-except
                 add_message(f"  ✗ [{idx}/{total_images}] フォルダ{folder_idx}: {image_path.name}: エラー - {exc}")
@@ -141,7 +143,8 @@ def run_image_preparation_pipeline(
         add_message("  ✓ モデルロード完了")
         add_message("")
 
-        processed_images = get_image_files(processed_dir)
+        # ステップ1で生成した画像のみを処理対象とする
+        processed_images = processed_output_paths
         success_count2 = 0
         skip_count2 = 0
 
